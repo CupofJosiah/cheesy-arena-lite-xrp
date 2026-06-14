@@ -32,3 +32,16 @@ PRs should include:
 
 ## Configuration & Ops Notes
 Cheesy Arena is designed to run as a local web server and uses BoltDB for data. For field networking and hardware integrations, see the project README and relevant `field/` or `plc/` code before making behavioral changes.
+
+## Upstream Porting Workflow
+This repo is the generic-only lite fork. When asked to check the full Cheesy Arena repo for portable changes, use the sibling local checkout at `../cheesy-arena` as the source of truth. Do not fetch from GitHub unless explicitly asked.
+
+Track the last reviewed upstream commit in `UPSTREAM.md`, not in this file. To inspect candidate changes, compare that checkpoint against the sibling repo:
+
+1. `git -C ../cheesy-arena log --oneline <last-reviewed>..HEAD`
+1. `git -C ../cheesy-arena diff --stat <last-reviewed>..HEAD`
+1. Inspect promising commits or paths with `git -C ../cheesy-arena show <commit>` or path-limited diffs.
+
+Port only game-agnostic changes. Preserve this repo's module path, repository identity, remotes, and generic-only behavior. Do not reintroduce game-mode branching, year-specific scoring, LED/game-specific hardware hooks, TBA publishing flows, or removed generic-vs-game scaffolding such as `GameMode`, `ScoreGeneric`, `RankingFieldsGeneric`, or `IsGenericMode`.
+
+After a porting pass, run the relevant tests and update `UPSTREAM.md` to the newest upstream commit that was actually reviewed.
