@@ -4,18 +4,21 @@
 package web
 
 import (
+	"testing"
+
 	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
+	"github.com/Team254/cheesy-arena-lite/websocket"
+	gorillawebsocket "github.com/gorilla/websocket"
+	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestAllianceSelection(t *testing.T) {
 	web := setupTestWeb(t)
 
-	web.arena.AllianceSelectionAlliances = []model.Alliance{}
-	cachedRankedTeams = []*RankedTeam{}
-	web.arena.EventSettings.NumElimAlliances = 15
+	web.arena.EventSettings.PlayoffType = model.SingleEliminationPlayoff
+	web.arena.EventSettings.NumPlayoffAlliances = 15
 	web.arena.EventSettings.SelectionRound3Order = "L"
 	for i := 1; i <= 10; i++ {
 		web.arena.Database.CreateRanking(&game.Ranking{TeamId: 100 + i, Rank: i})
@@ -42,7 +45,7 @@ func TestAllianceSelection(t *testing.T) {
 	assert.Equal(t, 303, recorder.Code)
 	assert.NotContains(t, recorder.Body.String(), "Captain")
 	assert.NotContains(t, recorder.Body.String(), ">110<")
-	web.arena.EventSettings.NumElimAlliances = 3
+	web.arena.EventSettings.NumPlayoffAlliances = 3
 	web.arena.EventSettings.SelectionRound3Order = ""
 	recorder = web.postHttpResponse("/alliance_selection/start", "")
 	assert.Equal(t, 303, recorder.Code)
@@ -68,14 +71,17 @@ func TestAllianceSelection(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), ">110<")
 
 	// Update remainder of teams.
-	recorder = web.postHttpResponse("/alliance_selection", "selection0_0=101&selection0_1=102&selection0_2=103&"+
-		"selection1_0=104&selection1_1=105&selection1_2=106&selection2_0=107&selection2_1=108&selection2_2=109")
+	recorder = web.postHttpResponse(
+		"/alliance_selection",
+		"selection0_0=101&selection0_1=102&selection0_2=103&selection1_0=104&selection1_1=105&selection1_2=106&"+
+			"selection2_0=107&selection2_1=108&selection2_2=109",
+	)
 	assert.Equal(t, 303, recorder.Code)
 	recorder = web.getHttpResponse("/alliance_selection")
 	assert.Contains(t, recorder.Body.String(), ">110<")
 
 	// Finalize alliance selection.
-	web.arena.Database.CreateTeam(&model.Team{Id: 254})
+	web.arena.Database.CreateTeam(&model.Team{Id: 254, YellowCard: true})
 	recorder = web.postHttpResponse("/alliance_selection/finalize", "startTime=2014-01-01 01:00:00 PM")
 	assert.Equal(t, 303, recorder.Code)
 	alliances, err := web.arena.Database.GetAllAlliances()
@@ -90,17 +96,18 @@ func TestAllianceSelection(t *testing.T) {
 		assert.Equal(t, 101, alliances[0].Lineup[1])
 		assert.Equal(t, 103, alliances[0].Lineup[2])
 	}
-	matches, err := web.arena.Database.GetMatchesByType("elimination")
+	matches, err := web.arena.Database.GetMatchesByType(model.Playoff, false)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(matches))
+	assert.Equal(t, 16, len(matches))
+	team, _ := web.arena.Database.GetTeamById(254)
+	assert.False(t, team.YellowCard)
 }
 
 func TestAllianceSelectionErrors(t *testing.T) {
 	web := setupTestWeb(t)
 
-	web.arena.AllianceSelectionAlliances = []model.Alliance{}
-	cachedRankedTeams = []*RankedTeam{}
-	web.arena.EventSettings.NumElimAlliances = 2
+	web.arena.EventSettings.PlayoffType = model.SingleEliminationPlayoff
+	web.arena.EventSettings.NumPlayoffAlliances = 2
 	for i := 1; i <= 6; i++ {
 		web.arena.Database.CreateRanking(&game.Ranking{TeamId: 100 + i, Rank: i})
 	}
@@ -124,23 +131,25 @@ func TestAllianceSelectionErrors(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "already part of an alliance")
 
 	// Finalize early and without required parameters.
-	recorder = web.postHttpResponse("/alliance_selection/finalize",
-		"startTime=2014-01-01 01:00:00 PM&matchSpacingSec=360")
+	recorder = web.postHttpResponse(
+		"/alliance_selection/finalize", "startTime=2014-01-01 01:00:00 PM&matchSpacingSec=360",
+	)
 	assert.Equal(t, 200, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), "until all spots have been filled")
-	recorder = web.postHttpResponse("/alliance_selection", "selection0_0=101&selection0_1=102&selection0_2=103&"+
-		"selection1_0=104&selection1_1=105&selection1_2=106")
+	recorder = web.postHttpResponse(
+		"/alliance_selection",
+		"selection0_0=101&selection0_1=102&selection0_2=103&selection1_0=104&selection1_1=105&selection1_2=106",
+	)
 	assert.Equal(t, 303, recorder.Code)
 	recorder = web.postHttpResponse("/alliance_selection/finalize", "startTime=asdf")
 	assert.Equal(t, 200, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), "valid start time")
 
-	// Finalize for real and check that TBA publishing is triggered.
+	// Finalize for real. Lite does not publish alliance selection data to TBA even if the old setting is present.
 	web.arena.TbaClient.BaseUrl = "fakeurl"
 	web.arena.EventSettings.TbaPublishingEnabled = true
 	recorder = web.postHttpResponse("/alliance_selection/finalize", "startTime=2014-01-01 01:00:00 PM")
-	assert.Equal(t, 200, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "Failed to publish alliances")
+	assert.Equal(t, 303, recorder.Code)
 
 	// Do other things after finalization.
 	recorder = web.postHttpResponse("/alliance_selection/finalize", "startTime=2014-01-01 01:00:00 PM")
@@ -150,7 +159,7 @@ func TestAllianceSelectionErrors(t *testing.T) {
 	assert.Equal(t, 200, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), "already been finalized")
 	web.arena.AllianceSelectionAlliances = []model.Alliance{}
-	cachedRankedTeams = []*RankedTeam{}
+	web.arena.AllianceSelectionRankedTeams = []model.AllianceSelectionRankedTeam{}
 	recorder = web.postHttpResponse("/alliance_selection/start", "")
 	assert.Equal(t, 200, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), "already been finalized")
@@ -159,9 +168,8 @@ func TestAllianceSelectionErrors(t *testing.T) {
 func TestAllianceSelectionReset(t *testing.T) {
 	web := setupTestWeb(t)
 
-	web.arena.AllianceSelectionAlliances = []model.Alliance{}
-	cachedRankedTeams = []*RankedTeam{}
-	web.arena.EventSettings.NumElimAlliances = 2
+	web.arena.EventSettings.PlayoffType = model.SingleEliminationPlayoff
+	web.arena.EventSettings.NumPlayoffAlliances = 2
 	for i := 1; i <= 6; i++ {
 		web.arena.Database.CreateRanking(&game.Ranking{TeamId: 100 + i, Rank: i})
 	}
@@ -169,14 +177,16 @@ func TestAllianceSelectionReset(t *testing.T) {
 	// Start, populate, and finalize the alliance selection.
 	recorder := web.postHttpResponse("/alliance_selection/start", "")
 	assert.Equal(t, 303, recorder.Code)
-	recorder = web.postHttpResponse("/alliance_selection", "selection0_0=101&selection0_1=102&selection0_2=103&"+
-		"selection1_0=104&selection1_1=105&selection1_2=106")
+	recorder = web.postHttpResponse(
+		"/alliance_selection",
+		"selection0_0=101&selection0_1=102&selection0_2=103&selection1_0=104&selection1_1=105&selection1_2=106",
+	)
 	assert.Equal(t, 303, recorder.Code)
 	recorder = web.postHttpResponse("/alliance_selection/finalize", "startTime=2014-01-01 01:00:00 PM")
 	assert.Equal(t, 303, recorder.Code)
 	alliances, _ := web.arena.Database.GetAllAlliances()
 	assert.NotEmpty(t, alliances)
-	matches, _ := web.arena.Database.GetMatchesByType("elimination")
+	matches, _ := web.arena.Database.GetMatchesByType(model.Playoff, true)
 	assert.NotEmpty(t, matches)
 
 	// Reset the alliance selection before any matches have been played.
@@ -184,20 +194,22 @@ func TestAllianceSelectionReset(t *testing.T) {
 	assert.Equal(t, 303, recorder.Code)
 	alliances, _ = web.arena.Database.GetAllAlliances()
 	assert.Empty(t, alliances)
-	matches, _ = web.arena.Database.GetMatchesByType("elimination")
+	matches, _ = web.arena.Database.GetMatchesByType(model.Playoff, true)
 	assert.Empty(t, matches)
 
 	// Start, populate, and finalize the alliance selection again.
 	recorder = web.postHttpResponse("/alliance_selection/start", "")
 	assert.Equal(t, 303, recorder.Code)
-	recorder = web.postHttpResponse("/alliance_selection", "selection0_0=101&selection0_1=102&selection0_2=103&"+
-		"selection1_0=104&selection1_1=105&selection1_2=106")
+	recorder = web.postHttpResponse(
+		"/alliance_selection",
+		"selection0_0=101&selection0_1=102&selection0_2=103&selection1_0=104&selection1_1=105&selection1_2=106",
+	)
 	assert.Equal(t, 303, recorder.Code)
 	recorder = web.postHttpResponse("/alliance_selection/finalize", "startTime=2014-01-01 01:00:00 PM")
 	assert.Equal(t, 303, recorder.Code)
 	alliances, _ = web.arena.Database.GetAllAlliances()
 	assert.NotEmpty(t, alliances)
-	matches, _ = web.arena.Database.GetMatchesByType("elimination")
+	matches, _ = web.arena.Database.GetMatchesByType(model.Playoff, true)
 	assert.NotEmpty(t, matches)
 
 	// Mark a match as played and verify that the alliance selection can no longer be reset.
@@ -208,16 +220,15 @@ func TestAllianceSelectionReset(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "matches have already started")
 	alliances, _ = web.arena.Database.GetAllAlliances()
 	assert.NotEmpty(t, alliances)
-	matches, _ = web.arena.Database.GetMatchesByType("elimination")
+	matches, _ = web.arena.Database.GetMatchesByType(model.Playoff, true)
 	assert.NotEmpty(t, matches)
 }
 
 func TestAllianceSelectionAutofocus(t *testing.T) {
 	web := setupTestWeb(t)
 
-	web.arena.AllianceSelectionAlliances = []model.Alliance{}
-	cachedRankedTeams = []*RankedTeam{}
-	web.arena.EventSettings.NumElimAlliances = 2
+	web.arena.EventSettings.PlayoffType = model.SingleEliminationPlayoff
+	web.arena.EventSettings.NumPlayoffAlliances = 2
 
 	// Straight draft.
 	web.arena.EventSettings.SelectionRound2Order = "F"
@@ -304,13 +315,34 @@ func TestAllianceSelectionAutofocus(t *testing.T) {
 	assert.Equal(t, -1, j)
 }
 
-func TestAllianceSelectionPublish(t *testing.T) {
+func TestAllianceSelectionWebsocket(t *testing.T) {
 	web := setupTestWeb(t)
 
-	web.arena.TbaClient.BaseUrl = "fakeurl"
-	web.arena.EventSettings.TbaPublishingEnabled = true
+	server, wsUrl := web.startTestServer()
+	defer server.Close()
+	conn, _, err := gorillawebsocket.DefaultDialer.Dial(wsUrl+"/alliance_selection/websocket", nil)
+	assert.Nil(t, err)
+	defer conn.Close()
+	ws := websocket.NewTestWebsocket(conn)
 
-	recorder := web.postHttpResponse("/alliance_selection/publish", "")
-	assert.Equal(t, 500, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "Failed to publish alliances")
+	// Should get a few status updates right after connection.
+	readWebsocketType(t, ws, "allianceSelection")
+	readWebsocketType(t, ws, "audienceDisplayMode")
+
+	// Test starting and stopping the timer.
+	allianceSelectionMessage := struct {
+		ShowTimer bool
+	}{}
+	ws.Write("startTimer", nil)
+	assert.Nil(t, mapstructure.Decode(readWebsocketType(t, ws, "allianceSelection"), &allianceSelectionMessage))
+	assert.Equal(t, true, allianceSelectionMessage.ShowTimer)
+	ws.Write("stopTimer", nil)
+	assert.Nil(t, mapstructure.Decode(readWebsocketType(t, ws, "allianceSelection"), &allianceSelectionMessage))
+	assert.Equal(t, true, allianceSelectionMessage.ShowTimer)
+	ws.Write("hideTimer", nil)
+	assert.Nil(t, mapstructure.Decode(readWebsocketType(t, ws, "allianceSelection"), &allianceSelectionMessage))
+	assert.Equal(t, false, allianceSelectionMessage.ShowTimer)
+	ws.Write("restartTimer", nil)
+	assert.Nil(t, mapstructure.Decode(readWebsocketType(t, ws, "allianceSelection"), &allianceSelectionMessage))
+	assert.Equal(t, true, allianceSelectionMessage.ShowTimer)
 }

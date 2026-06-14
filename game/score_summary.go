@@ -6,24 +6,50 @@
 package game
 
 type ScoreSummary struct {
-	AutoPoints    int
-	TeleopPoints  int
-	EndgamePoints int
-	Score         int
+	AutoPoints       int
+	TeleopPoints     int
+	PostMatchPoints  int
+	MatchPoints      int
+	FoulPoints       int
+	Score            int
+	WinRankingPoints int
+	PlayoffDq        bool
 }
 
-type MatchStatus string
+type MatchStatus int
 
 const (
-	RedWonMatch    MatchStatus = "R"
-	BlueWonMatch   MatchStatus = "B"
-	TieMatch       MatchStatus = "T"
-	MatchNotPlayed MatchStatus = ""
+	MatchScheduled MatchStatus = iota
+	MatchHidden
+	RedWonMatch
+	BlueWonMatch
+	TieMatch
 )
 
+func (t MatchStatus) Get() MatchStatus {
+	return t
+}
+
 // Determines the winner of the match given the score summaries for both alliances.
-func DetermineMatchStatus(redScoreSummary, blueScoreSummary *ScoreSummary) MatchStatus {
-	return comparePoints(redScoreSummary.Score, blueScoreSummary.Score)
+func DetermineMatchStatus(
+	redScoreSummary, blueScoreSummary *ScoreSummary,
+	applyPlayoffTiebreakers bool,
+) (MatchStatus, string) {
+	if redScoreSummary.PlayoffDq != blueScoreSummary.PlayoffDq {
+		if redScoreSummary.PlayoffDq {
+			return BlueWonMatch, ""
+		}
+		return RedWonMatch, ""
+	}
+
+	if status := comparePoints(redScoreSummary.Score, blueScoreSummary.Score); status != TieMatch {
+		return status, ""
+	}
+
+	if applyPlayoffTiebreakers {
+		return TieMatch, "TRUE TIE"
+	}
+	return TieMatch, ""
 }
 
 // Helper method to compare the red and blue alliance point totals and return the appropriate MatchStatus.

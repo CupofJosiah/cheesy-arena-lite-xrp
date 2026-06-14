@@ -8,15 +8,16 @@ package game
 import "math/rand"
 
 type RankingFields struct {
-	RankingPoints int
-	AutoPoints    int
-	EndgamePoints int
-	TeleopPoints  int
-	Random        float64
-	Wins          int
-	Losses        int
-	Ties          int
-	Played        int
+	RankingPoints     int
+	MatchPoints       int
+	AutoPoints        int
+	PostMatchPoints   int
+	Wins              int
+	Losses            int
+	Ties              int
+	Disqualifications int
+	Played            int
+	Random            float64
 }
 
 type Ranking struct {
@@ -28,27 +29,36 @@ type Ranking struct {
 
 type Rankings []Ranking
 
-func (fields *RankingFields) AddScoreSummary(ownScore *ScoreSummary, opponentScore *ScoreSummary) {
+var RankingRandomFloat64 = rand.Float64
+
+func (fields *RankingFields) AddScoreSummary(ownScore *ScoreSummary, opponentScore *ScoreSummary, disqualified bool) {
 	fields.Played += 1
 
 	// Store a random value to be used as the last tiebreaker if necessary.
-	fields.Random = rand.Float64()
+	fields.Random = RankingRandomFloat64()
 
-	// Assign ranking points and wins/losses/ties.
-	if ownScore.Score > opponentScore.Score {
-		fields.RankingPoints += 2
+	if disqualified {
+		fields.Disqualifications += 1
+		return
+	}
+
+	fields.RankingPoints += ownScore.WinRankingPoints
+	switch ownScore.WinRankingPoints {
+	case 2:
 		fields.Wins += 1
-	} else if ownScore.Score == opponentScore.Score {
-		fields.RankingPoints += 1
+	case 1:
 		fields.Ties += 1
-	} else {
+	default:
 		fields.Losses += 1
 	}
 
-	// Assign tiebreaker points.
+	fields.MatchPoints += ownScore.MatchPoints
 	fields.AutoPoints += ownScore.AutoPoints
-	fields.EndgamePoints += ownScore.EndgamePoints
-	fields.TeleopPoints += ownScore.TeleopPoints
+	fields.PostMatchPoints += ownScore.PostMatchPoints
+}
+
+func (fields RankingFields) TeleopPoints() int {
+	return fields.MatchPoints - fields.AutoPoints - fields.PostMatchPoints
 }
 
 // Helper function to implement the required interface for Sort.
@@ -63,16 +73,16 @@ func (rankings Rankings) Less(i, j int) bool {
 
 	// Use cross-multiplication to keep it in integer math.
 	if a.RankingPoints*b.Played == b.RankingPoints*a.Played {
-		if a.AutoPoints*b.Played == b.AutoPoints*a.Played {
-			if a.EndgamePoints*b.Played == b.EndgamePoints*a.Played {
-				if a.TeleopPoints*b.Played == b.TeleopPoints*a.Played {
+		if a.MatchPoints*b.Played == b.MatchPoints*a.Played {
+			if a.AutoPoints*b.Played == b.AutoPoints*a.Played {
+				if a.PostMatchPoints*b.Played == b.PostMatchPoints*a.Played {
 					return a.Random > b.Random
 				}
-				return a.TeleopPoints*b.Played > b.TeleopPoints*a.Played
+				return a.PostMatchPoints*b.Played > b.PostMatchPoints*a.Played
 			}
-			return a.EndgamePoints*b.Played > b.EndgamePoints*a.Played
+			return a.AutoPoints*b.Played > b.AutoPoints*a.Played
 		}
-		return a.AutoPoints*b.Played > b.AutoPoints*a.Played
+		return a.MatchPoints*b.Played > b.MatchPoints*a.Played
 	}
 	return a.RankingPoints*b.Played > b.RankingPoints*a.Played
 }

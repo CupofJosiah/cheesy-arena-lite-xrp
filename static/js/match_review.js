@@ -1,56 +1,129 @@
 // Copyright 2014 Team 254. All Rights Reserved.
 // Author: pat@patfairbank.com (Patrick Fairbank)
 //
-// Client-side methods for editing a match in the match review page.
+// Client-side methods for editing a generic match result.
 
-var scoreTemplate = Handlebars.compile($("#scoreTemplate").html());
-var allianceResults = {};
-var matchResult;
+const allianceResults = {};
+let matchResult;
 
-// Hijack the form submission to inject the data in JSON form so that it's easier for the server to parse.
-$("form").submit(function() {
-  updateResults("red");
-  updateResults("blue");
+const SUMMARY_REFRESH_DELAY_MS = 150;
+let summaryRefreshTimer;
+let latestSummaryRequestId = 0;
 
-  matchResult.RedScore = allianceResults["red"].score;
-  matchResult.BlueScore = allianceResults["blue"].score;
-  var matchResultJson = JSON.stringify(matchResult);
+$("form").submit(function () {
+  updateAllResults();
 
-  // Inject the JSON data into the form as hidden inputs.
+  const matchResultJson = JSON.stringify(matchResult);
+  $("input[name=matchResultJson]").remove();
   $("<input />").attr("type", "hidden").attr("name", "matchResultJson").attr("value", matchResultJson).appendTo("form");
 
   return true;
 });
 
-// Draws the match-editing form for one alliance based on the cached result data.
-var renderResults = function(alliance) {
-  var result = allianceResults[alliance];
-  var scoreContent = scoreTemplate(result);
-  $("#" + alliance + "Score").html(scoreContent);
+$("form").on("input change", "input, select", function () {
+  scheduleScoreSummaryRefresh();
+});
+
+const renderResults = function (alliance) {
+  const result = allianceResults[alliance];
+  result.score = normalizeScore(result.score);
+  result.cards = result.cards || {};
 
   getInputElement(alliance, "AutoPoints").val(result.score.AutoPoints);
   getInputElement(alliance, "TeleopPoints").val(result.score.TeleopPoints);
-  getInputElement(alliance, "EndgamePoints").val(result.score.EndgamePoints);
+  getInputElement(alliance, "PostMatchPoints").val(result.score.PostMatchPoints);
+  getInputElement(alliance, "FoulPointsAgainst").val(result.score.FoulPointsAgainst);
+  renderCards(alliance);
 };
 
-// Converts the current form values back into JSON structures and caches them.
-var updateResults = function(alliance) {
-  var result = allianceResults[alliance];
-  var formData = {};
-  $.each($("form").serializeArray(), function(k, v) {
+const updateResults = function (alliance) {
+  const result = allianceResults[alliance];
+  const formData = {};
+  $.each($("form").serializeArray(), function (k, v) {
     formData[v.name] = v.value;
   });
 
-  result.score.AutoPoints = parseInt(formData[alliance + "AutoPoints"]);
-  result.score.TeleopPoints = parseInt(formData[alliance + "TeleopPoints"]);
-  result.score.EndgamePoints = parseInt(formData[alliance + "EndgamePoints"]);
+  result.score.AutoPoints = parseFormInt(formData[`${alliance}AutoPoints`]);
+  result.score.TeleopPoints = parseFormInt(formData[`${alliance}TeleopPoints`]);
+  result.score.PostMatchPoints = parseFormInt(formData[`${alliance}PostMatchPoints`]);
+  result.score.FoulPointsAgainst = parseFormInt(formData[`${alliance}FoulPointsAgainst`]);
+
+  result.cards = {};
+  $.each(result.teams, function (i, team) {
+    result.cards[team] = formData[`${alliance}Team${team}Card`];
+  });
 };
 
-// Returns the form input element having the given parameters.
-var getInputElement = function(alliance, name, value) {
-  var selector = "input[name=" + alliance + name + "]";
+const updateAllResults = function () {
+  updateResults("red");
+  updateResults("blue");
+
+  matchResult.RedScore = allianceResults["red"].score;
+  matchResult.BlueScore = allianceResults["blue"].score;
+  matchResult.RedCards = allianceResults["red"].cards;
+  matchResult.BlueCards = allianceResults["blue"].cards;
+};
+
+const renderCards = function (alliance) {
+  const result = allianceResults[alliance];
+  $.each(result.cards, function (team, card) {
+    getInputElement(alliance, `Team${team}Card`, card).prop("checked", true);
+  });
+};
+
+const scheduleScoreSummaryRefresh = function () {
+  window.clearTimeout(summaryRefreshTimer);
+  summaryRefreshTimer = window.setTimeout(refreshScoreSummaries, SUMMARY_REFRESH_DELAY_MS);
+};
+
+const refreshScoreSummaries = function () {
+  updateAllResults();
+  const requestId = ++latestSummaryRequestId;
+
+  $.ajax({
+    url: `/match_review/${matchId}/summary`,
+    method: "POST",
+    contentType: "application/json",
+    data: JSON.stringify(matchResult),
+    success: function (data) {
+      if (requestId !== latestSummaryRequestId) {
+        return;
+      }
+      updateSummaryCard("red", data.RedSummary);
+      updateSummaryCard("blue", data.BlueSummary);
+    },
+  });
+};
+
+const updateSummaryCard = function (alliance, summary) {
+  const summaryCard = $(`#${alliance}Summary`);
+  $.each(summary, function (field, value) {
+    summaryCard.find(`[data-summary-field=${field}]`).html(value);
+  });
+};
+
+const getInputElement = function (alliance, name, value) {
+  let selector = `input[name=${alliance}${name}]`;
   if (value !== undefined) {
-    selector += "[value=" + value + "]";
+    selector += `[value=${value}]`;
   }
   return $(selector);
+};
+
+const normalizeScore = function (score) {
+  score = score || {};
+  score.AutoPoints = parseFormInt(score.AutoPoints);
+  score.TeleopPoints = parseFormInt(score.TeleopPoints);
+  score.PostMatchPoints = parseFormInt(score.PostMatchPoints);
+  score.FoulPointsAgainst = parseFormInt(score.FoulPointsAgainst);
+  score.PlayoffDq = !!score.PlayoffDq;
+  return score;
+};
+
+const parseFormInt = function (value) {
+  const parsed = parseInt(value, 10);
+  if (isNaN(parsed)) {
+    return 0;
+  }
+  return parsed;
 };

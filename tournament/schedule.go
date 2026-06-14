@@ -22,9 +22,12 @@ const (
 	TeamsPerMatch = 6
 )
 
+var schedulePerm = rand.Perm
+
 // Creates a random schedule for the given parameters and returns it as a list of matches.
-func BuildRandomSchedule(teams []model.Team, scheduleBlocks []model.ScheduleBlock,
-	matchType string) ([]model.Match, error) {
+func BuildRandomSchedule(
+	teams []model.Team, scheduleBlocks []model.ScheduleBlock, matchType model.MatchType,
+) ([]model.Match, error) {
 	// Load the anonymized, pre-randomized match schedule for the given number of teams and matches per team.
 	numTeams := len(teams)
 	numMatches := countMatches(scheduleBlocks)
@@ -33,8 +36,9 @@ func BuildRandomSchedule(teams []model.Team, scheduleBlocks []model.ScheduleBloc
 	// Adjust the number of matches to remove any excess from non-perfect block scheduling.
 	numMatches = int(math.Ceil(float64(numTeams) * float64(matchesPerTeam) / TeamsPerMatch))
 
-	file, err := os.Open(fmt.Sprintf("%s/%d_%d.csv", filepath.Join(model.BaseDir, schedulesDir), numTeams,
-		matchesPerTeam))
+	file, err := os.Open(
+		fmt.Sprintf("%s/%d_%d.csv", filepath.Join(model.BaseDir, schedulesDir), numTeams, matchesPerTeam),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("No schedule template exists for %d teams and %d matches", numTeams, matchesPerTeam)
 	}
@@ -60,11 +64,22 @@ func BuildRandomSchedule(teams []model.Team, scheduleBlocks []model.ScheduleBloc
 	}
 
 	// Generate a random permutation of the team ordering to fill into the pre-randomized schedule.
-	teamShuffle := rand.Perm(numTeams)
+	teamShuffle := schedulePerm(numTeams)
 	matches := make([]model.Match, numMatches)
 	for i, anonMatch := range anonSchedule {
 		matches[i].Type = matchType
-		matches[i].DisplayName = strconv.Itoa(i + 1)
+		matches[i].TypeOrder = i + 1
+		if matchType == model.Practice {
+			matches[i].ShortName = fmt.Sprintf("P%d", i+1)
+			matches[i].LongName = fmt.Sprintf("Practice %d", i+1)
+			matches[i].TbaMatchKey.CompLevel = "p"
+		} else if matchType == model.Qualification {
+			matches[i].ShortName = fmt.Sprintf("Q%d", i+1)
+			matches[i].LongName = fmt.Sprintf("Qualification %d", i+1)
+			matches[i].TbaMatchKey.CompLevel = "qm"
+		} else {
+			return nil, fmt.Errorf("invalid match type %q", matchType)
+		}
 		matches[i].Red1 = teams[teamShuffle[anonMatch[0]-1]].Id
 		matches[i].Red1IsSurrogate = anonMatch[1] == 1
 		matches[i].Red2 = teams[teamShuffle[anonMatch[2]-1]].Id
@@ -77,6 +92,7 @@ func BuildRandomSchedule(teams []model.Team, scheduleBlocks []model.ScheduleBloc
 		matches[i].Blue2IsSurrogate = anonMatch[9] == 1
 		matches[i].Blue3 = teams[teamShuffle[anonMatch[10]-1]].Id
 		matches[i].Blue3IsSurrogate = anonMatch[11] == 1
+		matches[i].TbaMatchKey.MatchNumber = i + 1
 	}
 
 	// Fill in the match times.

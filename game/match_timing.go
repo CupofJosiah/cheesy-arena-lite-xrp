@@ -1,32 +1,37 @@
 // Copyright 2017 Team 254. All Rights Reserved.
 // Author: pat@patfairbank.com (Patrick Fairbank)
 //
-// Game-specific period timing.
+// Match period timing.
 
 package game
 
 import "time"
 
+const (
+	ScoringGracePeriodSec  = 3
+	MotorsOnExtraPeriodSec = 2
+)
+
 var MatchTiming = struct {
-	WarmupDurationSec                  int
-	AutoDurationSec                    int
-	PauseDurationSec                   int
-	TeleopDurationSec                  int
-	WarningRemainingDurationSec        int
-	TimeoutDurationSec                 int
-	TimeoutWarningRemainingDurationSec int
-}{0, 15, 2, 135, 30, 0, 60}
+	AutoDurationSec     int
+	PauseDurationSec    int
+	TeleopDurationSec   int
+	WarningSoundTimeSec int
+	TimeoutDurationSec  int
+}{20, 3, 140, 30, 0}
 
 func GetDurationToAutoEnd() time.Duration {
-	return time.Duration(MatchTiming.WarmupDurationSec+MatchTiming.AutoDurationSec) * time.Second
+	return time.Duration(MatchTiming.AutoDurationSec) * time.Second
 }
 
 func GetDurationToTeleopStart() time.Duration {
-	return time.Duration(MatchTiming.WarmupDurationSec+MatchTiming.AutoDurationSec+MatchTiming.PauseDurationSec) *
-		time.Second
+	return time.Duration(
+		MatchTiming.AutoDurationSec+MatchTiming.PauseDurationSec,
+	) * time.Second
 }
 
 func GetDurationToTeleopEnd() time.Duration {
-	return time.Duration(MatchTiming.WarmupDurationSec+MatchTiming.AutoDurationSec+MatchTiming.PauseDurationSec+
-		MatchTiming.TeleopDurationSec) * time.Second
+	return time.Duration(
+		MatchTiming.AutoDurationSec+MatchTiming.PauseDurationSec+MatchTiming.TeleopDurationSec,
+	) * time.Second
 }

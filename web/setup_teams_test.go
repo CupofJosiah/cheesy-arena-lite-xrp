@@ -24,7 +24,7 @@ func TestSetupTeams(t *testing.T) {
 	// Mock the URL to download team info from.
 	teamInfoBody := `{
 		"website": "http://www.team254.com",
-		"name": "NASA Ames Research Center",
+		"name": "NASA Ames Research Center/PG&E&Bellarmine College Preparatory",
 		"city": "San Jose",
 		"rookie_year": 1999,
 		"state_prov": "CA",
@@ -66,20 +66,30 @@ func TestSetupTeams(t *testing.T) {
 		],
 		"year": 2014
 	}]`
+	teamMediaBody := `[{
+		"type": "not_an_avatar",
+		"details": {}
+	}]`
 	eventBody := `{ "name": "Championship" }`
-	tbaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.RequestURI, "robots") {
-			fmt.Fprintln(w, teamRobotsBody)
-		} else if strings.Contains(r.RequestURI, "awards") {
-			fmt.Fprintln(w, teamAwardsBody)
-		} else if strings.Contains(r.RequestURI, "team") {
-			fmt.Fprintln(w, teamInfoBody)
-		} else if strings.Contains(r.RequestURI, "event") {
-			fmt.Fprintln(w, eventBody)
-		} else {
-			http.Error(w, "Unexpected request during test", 500)
-		}
-	}))
+	tbaServer := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				if strings.Contains(r.RequestURI, "robots") {
+					fmt.Fprintln(w, teamRobotsBody)
+				} else if strings.Contains(r.RequestURI, "awards") {
+					fmt.Fprintln(w, teamAwardsBody)
+				} else if strings.Contains(r.RequestURI, "media") {
+					fmt.Fprintln(w, teamMediaBody)
+				} else if strings.Contains(r.RequestURI, "team") {
+					fmt.Fprintln(w, teamInfoBody)
+				} else if strings.Contains(r.RequestURI, "event") {
+					fmt.Fprintln(w, eventBody)
+				} else {
+					http.Error(w, "Unexpected request during test", 500)
+				}
+			},
+		),
+	)
 	defer tbaServer.Close()
 	web.arena.TbaClient.BaseUrl = tbaServer.URL
 
@@ -90,6 +100,8 @@ func TestSetupTeams(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "2 teams")
 	assert.Contains(t, recorder.Body.String(), "The Cheesy Poofs")
 	assert.Contains(t, recorder.Body.String(), "1114")
+	team, _ := web.arena.Database.GetTeamById(254)
+	assert.Equal(t, "Bellarmine College Preparatory", team.SchoolName)
 
 	// Add another team.
 	recorder = web.postHttpResponse("/setup/teams", "teamNumbers=33")
@@ -131,7 +143,7 @@ func TestSetupTeamsDisallowModification(t *testing.T) {
 	web := setupTestWeb(t)
 
 	web.arena.Database.CreateTeam(&model.Team{Id: 254, Nickname: "The Cheesy Poofs"})
-	web.arena.Database.CreateMatch(&model.Match{Type: "qualification"})
+	web.arena.Database.CreateMatch(&model.Match{Type: model.Qualification})
 
 	// Disallow adding teams.
 	recorder := web.postHttpResponse("/setup/teams", "teamNumbers=33")
@@ -206,13 +218,11 @@ func TestSetupTeamsWpaKeys(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "WPA key must be between 8 and 63 characters")
 }
 
-func TestSetupTeamsPublish(t *testing.T) {
+func TestSetupTeamsProgress(t *testing.T) {
 	web := setupTestWeb(t)
+	progressPercentage = 25.4
 
-	web.arena.TbaClient.BaseUrl = "fakeurl"
-	web.arena.EventSettings.TbaPublishingEnabled = true
-
-	recorder := web.postHttpResponse("/setup/teams/publish", "")
-	assert.Equal(t, 500, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "Failed to publish teams")
+	recorder := web.getHttpResponse("/setup/teams/progress")
+	assert.Equal(t, 200, recorder.Code)
+	assert.Equal(t, "25", recorder.Body.String())
 }

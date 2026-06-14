@@ -20,7 +20,7 @@ func (web *Web) fieldMonitorDisplayHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if !web.enforceDisplayConfiguration(w, r, map[string]string{"reversed": "false", "fta": "false"}) {
+	if !web.enforceDisplayConfiguration(w, r, map[string]string{"ds": "false", "fta": "false", "reversed": "false"}) {
 		return
 	}
 
@@ -58,11 +58,19 @@ func (web *Web) fieldMonitorDisplayWebsocketHandler(w http.ResponseWriter, r *ht
 		handleWebErr(w, err)
 		return
 	}
-	defer ws.Close()
+	defer closeWebsocket(ws)
 
 	// Subscribe the websocket to the notifiers whose messages will be passed on to the client, in a separate goroutine.
-	go ws.HandleNotifiers(display.Notifier, web.arena.ArenaStatusNotifier, web.arena.EventStatusNotifier,
-		web.arena.ReloadDisplaysNotifier)
+	go ws.HandleNotifiers(
+		web.arena.MatchTimingNotifier,
+		display.Notifier,
+		web.arena.ArenaStatusNotifier,
+		web.arena.EventStatusNotifier,
+		web.arena.RealtimeScoreNotifier,
+		web.arena.MatchTimeNotifier,
+		web.arena.MatchLoadNotifier,
+		web.arena.ReloadDisplaysNotifier,
+	)
 
 	// Loop, waiting for commands and responding to them, until the client closes the connection.
 	for {
@@ -84,7 +92,7 @@ func (web *Web) fieldMonitorDisplayWebsocketHandler(w http.ResponseWriter, r *ht
 				}{}
 				err = mapstructure.Decode(data, &args)
 				if err != nil {
-					ws.WriteError(err.Error())
+					writeWebsocketError(ws, err.Error())
 					continue
 				}
 
@@ -92,17 +100,17 @@ func (web *Web) fieldMonitorDisplayWebsocketHandler(w http.ResponseWriter, r *ht
 					if allianceStation.Team != nil {
 						allianceStation.Team.FtaNotes = args.Notes
 						if err := web.arena.Database.UpdateTeam(allianceStation.Team); err != nil {
-							ws.WriteError(err.Error())
+							writeWebsocketError(ws, err.Error())
 						}
 						web.arena.ArenaStatusNotifier.Notify()
 					} else {
-						ws.WriteError("No team present")
+						writeWebsocketError(ws, "No team present")
 					}
 				} else {
-					ws.WriteError("Invalid alliance station")
+					writeWebsocketError(ws, "Invalid alliance station")
 				}
 			} else {
-				ws.WriteError("Must be in FTA mode to update team notes")
+				writeWebsocketError(ws, "Must be in FTA mode to update team notes")
 			}
 		}
 	}

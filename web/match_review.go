@@ -10,36 +10,49 @@ import (
 	"fmt"
 	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 )
 
 type MatchReviewListItem struct {
 	Id          int
-	DisplayName string
+	ShortName   string
 	Time        string
 	RedTeams    []int
 	BlueTeams   []int
 	RedScore    int
 	BlueScore   int
+	RedSummary  *game.ScoreSummary
+	BlueSummary *game.ScoreSummary
 	ColorClass  string
 	IsComplete  bool
 }
 
+type MatchReviewEditAlliance struct {
+	Alliance          string
+	Teams             []int
+	Summary           *game.ScoreSummary
+	ShowRankingPoints bool
+}
+
+type MatchReviewSummaryResponse struct {
+	RedSummary  *game.ScoreSummary
+	BlueSummary *game.ScoreSummary
+}
+
 // Shows the match review interface.
 func (web *Web) matchReviewHandler(w http.ResponseWriter, r *http.Request) {
-	practiceMatches, err := web.buildMatchReviewList("practice")
+	practiceMatches, err := web.buildMatchReviewList(model.Practice)
 	if err != nil {
 		handleWebErr(w, err)
 		return
 	}
-	qualificationMatches, err := web.buildMatchReviewList("qualification")
+	qualificationMatches, err := web.buildMatchReviewList(model.Qualification)
 	if err != nil {
 		handleWebErr(w, err)
 		return
 	}
-	eliminationMatches, err := web.buildMatchReviewList("elimination")
+	playoffMatches, err := web.buildMatchReviewList(model.Playoff)
 	if err != nil {
 		handleWebErr(w, err)
 		return
@@ -50,16 +63,19 @@ func (web *Web) matchReviewHandler(w http.ResponseWriter, r *http.Request) {
 		handleWebErr(w, err)
 		return
 	}
-	matchesByType := map[string][]MatchReviewListItem{"practice": practiceMatches,
-		"qualification": qualificationMatches, "elimination": eliminationMatches}
+	matchesByType := map[model.MatchType][]MatchReviewListItem{
+		model.Practice:      practiceMatches,
+		model.Qualification: qualificationMatches,
+		model.Playoff:       playoffMatches,
+	}
 	currentMatchType := web.arena.CurrentMatch.Type
-	if currentMatchType == "test" {
-		currentMatchType = "practice"
+	if currentMatchType == model.Test {
+		currentMatchType = model.Practice
 	}
 	data := struct {
 		*model.EventSettings
-		MatchesByType    map[string][]MatchReviewListItem
-		CurrentMatchType string
+		MatchesByType    map[model.MatchType][]MatchReviewListItem
+		CurrentMatchType model.MatchType
 	}{web.arena.EventSettings, matchesByType, currentMatchType}
 	err = template.ExecuteTemplate(w, "base", data)
 	if err != nil {
@@ -74,7 +90,7 @@ func (web *Web) matchReviewEditGetHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	match, matchResult, _, err := web.getMatchResultFromRequest(r)
+	match, matchResult, isCurrent, err := web.getMatchResultFromRequest(r)
 	if err != nil {
 		handleWebErr(w, err)
 		return
@@ -90,12 +106,69 @@ func (web *Web) matchReviewEditGetHandler(w http.ResponseWriter, r *http.Request
 		handleWebErr(w, err)
 		return
 	}
+	alliances := []MatchReviewEditAlliance{
+		{
+			Alliance:          "red",
+			Teams:             []int{match.Red1, match.Red2, match.Red3},
+			Summary:           matchResult.RedScoreSummary(),
+			ShowRankingPoints: match.Type != model.Playoff,
+		},
+		{
+			Alliance:          "blue",
+			Teams:             []int{match.Blue1, match.Blue2, match.Blue3},
+			Summary:           matchResult.BlueScoreSummary(),
+			ShowRankingPoints: match.Type != model.Playoff,
+		},
+	}
 	data := struct {
 		*model.EventSettings
 		Match           *model.Match
 		MatchResultJson string
-	}{web.arena.EventSettings, match, string(matchResultJson)}
+		IsCurrentMatch  bool
+		Alliances       []MatchReviewEditAlliance
+	}{web.arena.EventSettings, match, string(matchResultJson), isCurrent, alliances}
 	err = template.ExecuteTemplate(w, "base", data)
+	if err != nil {
+		handleWebErr(w, err)
+		return
+	}
+}
+
+// Calculates score summaries for an in-progress match result without saving it.
+func (web *Web) matchReviewSummaryPostHandler(w http.ResponseWriter, r *http.Request) {
+	if !web.userIsAdmin(w, r) {
+		return
+	}
+
+	match, _, _, err := web.getMatchResultFromRequest(r)
+	if err != nil {
+		handleWebErr(w, err)
+		return
+	}
+
+	var matchResult model.MatchResult
+	if err = json.NewDecoder(r.Body).Decode(&matchResult); err != nil {
+		handleWebErr(w, err)
+		return
+	}
+	if matchResult.MatchId != match.Id {
+		handleWebErr(w, fmt.Errorf("Error: match ID %d from result does not match expected", matchResult.MatchId))
+		return
+	}
+	normalizeMatchResult(&matchResult)
+
+	response := MatchReviewSummaryResponse{
+		RedSummary:  matchResult.RedScoreSummary(),
+		BlueSummary: matchResult.BlueScoreSummary(),
+	}
+	jsonData, err := json.Marshal(response)
+	if err != nil {
+		handleWebErr(w, err)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	_, err = w.Write(jsonData)
 	if err != nil {
 		handleWebErr(w, err)
 		return
@@ -123,11 +196,16 @@ func (web *Web) matchReviewEditPostHandler(w http.ResponseWriter, r *http.Reques
 		handleWebErr(w, fmt.Errorf("Error: match ID %d from result does not match expected", matchResult.MatchId))
 		return
 	}
+	normalizeMatchResult(&matchResult)
 
 	if isCurrent {
 		// If editing the current match, just save it back to memory.
-		*web.arena.RedScore = *matchResult.RedScore
-		*web.arena.BlueScore = *matchResult.BlueScore
+		web.arena.RedRealtimeScore.CurrentScore = *matchResult.RedScore
+		web.arena.BlueRealtimeScore.CurrentScore = *matchResult.BlueScore
+		web.arena.RedRealtimeScore.Cards = matchResult.RedCards
+		web.arena.BlueRealtimeScore.Cards = matchResult.BlueCards
+
+		web.arena.RealtimeScoreNotifier.Notify()
 
 		http.Redirect(w, r, "/match_play", 303)
 	} else {
@@ -143,14 +221,15 @@ func (web *Web) matchReviewEditPostHandler(w http.ResponseWriter, r *http.Reques
 
 // Load the match result for the match referenced in the HTTP query string.
 func (web *Web) getMatchResultFromRequest(r *http.Request) (*model.Match, *model.MatchResult, bool, error) {
-	vars := mux.Vars(r)
-
 	// If editing the current match, get it from memory instead of the DB.
-	if vars["matchId"] == "current" {
+	if r.PathValue("matchId") == "current" {
 		return web.arena.CurrentMatch, web.getCurrentMatchResult(), true, nil
 	}
 
-	matchId, _ := strconv.Atoi(vars["matchId"])
+	matchId, err := strconv.Atoi(r.PathValue("matchId"))
+	if err != nil {
+		return nil, nil, false, err
+	}
 	match, err := web.arena.Database.GetMatchById(matchId)
 	if err != nil {
 		return nil, nil, false, err
@@ -172,9 +251,13 @@ func (web *Web) getMatchResultFromRequest(r *http.Request) (*model.Match, *model
 	return match, matchResult, false, nil
 }
 
+func normalizeMatchResult(matchResult *model.MatchResult) {
+	matchResult.EnsureInitialized()
+}
+
 // Constructs the list of matches to display in the match review interface.
-func (web *Web) buildMatchReviewList(matchType string) ([]MatchReviewListItem, error) {
-	matches, err := web.arena.Database.GetMatchesByType(matchType)
+func (web *Web) buildMatchReviewList(matchType model.MatchType) ([]MatchReviewListItem, error) {
+	matches, err := web.arena.Database.GetMatchesByType(matchType, false)
 	if err != nil {
 		return []MatchReviewListItem{}, err
 	}
@@ -182,27 +265,31 @@ func (web *Web) buildMatchReviewList(matchType string) ([]MatchReviewListItem, e
 	matchReviewList := make([]MatchReviewListItem, len(matches))
 	for i, match := range matches {
 		matchReviewList[i].Id = match.Id
-		matchReviewList[i].DisplayName = match.TypePrefix() + match.DisplayName
+		matchReviewList[i].ShortName = match.ShortName
 		matchReviewList[i].Time = match.Time.Local().Format("Mon 1/02 03:04 PM")
 		matchReviewList[i].RedTeams = []int{match.Red1, match.Red2, match.Red3}
 		matchReviewList[i].BlueTeams = []int{match.Blue1, match.Blue2, match.Blue3}
+		matchReviewList[i].RedSummary = new(game.ScoreSummary)
+		matchReviewList[i].BlueSummary = new(game.ScoreSummary)
 		matchResult, err := web.arena.Database.GetMatchResultForMatch(match.Id)
 		if err != nil {
 			return []MatchReviewListItem{}, err
 		}
 		if matchResult != nil {
-			matchReviewList[i].RedScore = matchResult.RedScoreSummary().Score
-			matchReviewList[i].BlueScore = matchResult.BlueScoreSummary().Score
+			matchReviewList[i].RedSummary = matchResult.RedScoreSummary()
+			matchReviewList[i].BlueSummary = matchResult.BlueScoreSummary()
+			matchReviewList[i].RedScore = matchReviewList[i].RedSummary.Score
+			matchReviewList[i].BlueScore = matchReviewList[i].BlueSummary.Score
 		}
 		switch match.Status {
 		case game.RedWonMatch:
-			matchReviewList[i].ColorClass = "danger"
+			matchReviewList[i].ColorClass = "red"
 			matchReviewList[i].IsComplete = true
 		case game.BlueWonMatch:
-			matchReviewList[i].ColorClass = "info"
+			matchReviewList[i].ColorClass = "blue"
 			matchReviewList[i].IsComplete = true
 		case game.TieMatch:
-			matchReviewList[i].ColorClass = "warning"
+			matchReviewList[i].ColorClass = "yellow"
 			matchReviewList[i].IsComplete = true
 		default:
 			matchReviewList[i].ColorClass = ""

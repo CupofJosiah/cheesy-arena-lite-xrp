@@ -14,10 +14,12 @@ type Team struct {
 	City            string
 	StateProv       string
 	Country         string
+	SchoolName      string
 	RookieYear      int
 	RobotName       string
 	Accomplishments string
 	WpaKey          string
+	YellowCard      bool
 	HasConnected    bool
 	FtaNotes        string
 }
@@ -47,8 +49,10 @@ func (database *Database) GetAllTeams() ([]Team, error) {
 	if err != nil {
 		return nil, err
 	}
-	sort.Slice(teams, func(i, j int) bool {
-		return teams[i].Id < teams[j].Id
-	})
+	sort.Slice(
+		teams, func(i, j int) bool {
+			return teams[i].Id < teams[j].Id
+		},
+	)
 	return teams, nil
 }

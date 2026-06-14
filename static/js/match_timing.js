@@ -3,47 +3,49 @@
 //
 // Shared client-side logic for interpreting match state and timing notifications.
 
-var matchStates = {
+// MatchType enum values.
+const matchTypeTest = 0;
+const matchTypePractice = 1;
+const matchTypeQualification = 2;
+const matchTypePlayoff = 3;
+
+const matchStates = {
   0: "PRE_MATCH",
   1: "START_MATCH",
-  2: "WARMUP_PERIOD",
-  3: "AUTO_PERIOD",
-  4: "PAUSE_PERIOD",
-  5: "TELEOP_PERIOD",
-  6: "POST_MATCH",
-  7: "TIMEOUT_ACTIVE",
-  8: "POST_TIMEOUT"
+  2: "AUTO_PERIOD",
+  3: "PAUSE_PERIOD",
+  4: "TELEOP_PERIOD",
+  5: "POST_MATCH",
+  6: "TIMEOUT_ACTIVE",
+  7: "POST_TIMEOUT"
 };
-var matchTiming;
+let matchTiming;
 
 // Handles a websocket message containing the length of each period in the match.
-var handleMatchTiming = function(data) {
+const handleMatchTiming = function (data) {
   matchTiming = data;
 };
 
 // Converts the raw match state and time into a human-readable state and per-period time. Calls the provided
 // callback with the result.
-var translateMatchTime = function(data, callback) {
+const translateMatchTime = function (data, callback) {
   var matchStateText;
   switch (matchStates[data.MatchState]) {
     case "PRE_MATCH":
-      matchStateText = "PRE-MATCH";
+      matchStateText = "START";
       break;
     case "START_MATCH":
-    case "WARMUP_PERIOD":
-      matchStateText = "WARMUP";
-      break;
     case "AUTO_PERIOD":
-      matchStateText = "AUTONOMOUS";
+      matchStateText = "AUTO";
       break;
     case "PAUSE_PERIOD":
       matchStateText = "PAUSE";
       break;
     case "TELEOP_PERIOD":
-      matchStateText = "TELEOPERATED";
+      matchStateText = "TELEOP";
       break;
     case "POST_MATCH":
-      matchStateText = "POST-MATCH";
+      matchStateText = "POSTMATCH";
       break;
     case "TIMEOUT_ACTIVE":
     case "POST_TIMEOUT":
@@ -54,20 +56,29 @@ var translateMatchTime = function(data, callback) {
 };
 
 // Returns the per-period countdown for the given match state and overall time into the match.
-var getCountdown = function(matchState, matchTimeSec) {
+const getCountdown = function (matchState, matchTimeSec) {
   switch (matchStates[matchState]) {
     case "PRE_MATCH":
     case "START_MATCH":
-    case "WARMUP_PERIOD":
       return matchTiming.AutoDurationSec;
     case "AUTO_PERIOD":
-      return matchTiming.WarmupDurationSec + matchTiming.AutoDurationSec - matchTimeSec;
+      return matchTiming.AutoDurationSec - matchTimeSec;
+    case "PAUSE_PERIOD":
+      return matchTiming.AutoDurationSec + matchTiming.PauseDurationSec - matchTimeSec;
     case "TELEOP_PERIOD":
-      return matchTiming.WarmupDurationSec + matchTiming.AutoDurationSec + matchTiming.TeleopDurationSec +
-          matchTiming.PauseDurationSec - matchTimeSec;
+      return matchTiming.AutoDurationSec + matchTiming.PauseDurationSec + matchTiming.TeleopDurationSec - matchTimeSec;
     case "TIMEOUT_ACTIVE":
       return matchTiming.TimeoutDurationSec - matchTimeSec;
     default:
       return 0;
   }
+};
+
+// Converts the given countdown in seconds to a string with a colon separator and leading zero padding.
+const getCountdownString = function (countdownSec) {
+  let countdownString = String(countdownSec % 60);
+  if (countdownString.length === 1) {
+    countdownString = "0" + countdownString;
+  }
+  return Math.floor(countdownSec / 60) + ":" + countdownString;
 };

@@ -4,65 +4,82 @@
 package game
 
 import (
-	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"sort"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAddScoreSummary(t *testing.T) {
-	rand.Seed(0)
-	redScore := TestScore1()
-	blueScore := TestScore2()
-	redSummary := redScore.Summarize()
-	blueSummary := blueScore.Summarize()
+	randomizer := rand.New(rand.NewSource(0))
+	RankingRandomFloat64 = randomizer.Float64
+	redSummary := &ScoreSummary{
+		AutoPoints:       30,
+		TeleopPoints:     18,
+		PostMatchPoints:  19,
+		MatchPoints:      67,
+		Score:            67,
+		WinRankingPoints: 0,
+	}
+	blueSummary := &ScoreSummary{
+		AutoPoints:       16,
+		TeleopPoints:     31,
+		PostMatchPoints:  14,
+		MatchPoints:      61,
+		Score:            81,
+		WinRankingPoints: 2,
+	}
+	tieSummary := &ScoreSummary{
+		AutoPoints:       10,
+		TeleopPoints:     20,
+		PostMatchPoints:  30,
+		MatchPoints:      60,
+		Score:            60,
+		WinRankingPoints: 1,
+	}
 	rankingFields := RankingFields{}
 
-	// Add a loss.
-	rankingFields.AddScoreSummary(redSummary, blueSummary)
-	assert.Equal(t, RankingFields{2, 45, 30, 80, 0.9451961492941164, 1, 0, 0, 1}, rankingFields)
+	rankingFields.AddScoreSummary(redSummary, blueSummary, false)
+	assert.Equal(t, RankingFields{0, 67, 30, 19, 0, 1, 0, 0, 1, 0.9451961492941164}, rankingFields)
 
-	// Add a win.
-	rankingFields.AddScoreSummary(blueSummary, redSummary)
-	assert.Equal(t, RankingFields{2, 60, 55, 120, 0.24496508529377975, 1, 1, 0, 2}, rankingFields)
+	rankingFields.AddScoreSummary(blueSummary, redSummary, false)
+	assert.Equal(t, RankingFields{2, 128, 46, 33, 1, 1, 0, 0, 2, 0.24496508529377975}, rankingFields)
 
-	// Add a tie.
-	rankingFields.AddScoreSummary(redSummary, redSummary)
-	assert.Equal(t, RankingFields{3, 105, 85, 200, 0.6559562651954052, 1, 1, 1, 3}, rankingFields)
+	rankingFields.AddScoreSummary(tieSummary, tieSummary, false)
+	assert.Equal(t, RankingFields{3, 188, 56, 63, 1, 1, 1, 0, 3, 0.6559562651954052}, rankingFields)
+
+	rankingFields.AddScoreSummary(blueSummary, redSummary, true)
+	assert.Equal(t, RankingFields{3, 188, 56, 63, 1, 1, 1, 1, 4, 0.05434383959970039}, rankingFields)
 }
 
 func TestSortRankings(t *testing.T) {
-	// Check tiebreakers.
 	rankings := make(Rankings, 10)
-	rankings[0] = Ranking{1, 0, 0, RankingFields{50, 50, 50, 50, 0.49, 3, 2, 1, 10}}
-	rankings[1] = Ranking{2, 0, 0, RankingFields{50, 50, 50, 50, 0.51, 3, 2, 1, 10}}
-	rankings[2] = Ranking{3, 0, 0, RankingFields{50, 50, 50, 49, 0.50, 3, 2, 1, 10}}
-	rankings[3] = Ranking{4, 0, 0, RankingFields{50, 50, 50, 51, 0.50, 3, 2, 1, 10}}
-	rankings[4] = Ranking{5, 0, 0, RankingFields{50, 50, 49, 50, 0.50, 3, 2, 1, 10}}
-	rankings[5] = Ranking{6, 0, 0, RankingFields{50, 50, 51, 50, 0.50, 3, 2, 1, 10}}
-	rankings[6] = Ranking{7, 0, 0, RankingFields{50, 49, 50, 50, 0.50, 3, 2, 1, 10}}
-	rankings[7] = Ranking{8, 0, 0, RankingFields{50, 51, 50, 50, 0.50, 3, 2, 1, 10}}
-	rankings[8] = Ranking{9, 0, 0, RankingFields{49, 50, 50, 50, 0.50, 3, 2, 1, 10}}
-	rankings[9] = Ranking{10, 0, 0, RankingFields{51, 50, 50, 50, 0.50, 3, 2, 1, 10}}
+	rankings[0] = Ranking{TeamId: 1, RankingFields: RankingFields{RankingPoints: 50, MatchPoints: 50, AutoPoints: 50, PostMatchPoints: 50, Played: 10, Random: 0.49}}
+	rankings[1] = Ranking{TeamId: 2, RankingFields: RankingFields{RankingPoints: 50, MatchPoints: 50, AutoPoints: 50, PostMatchPoints: 50, Played: 10, Random: 0.51}}
+	rankings[2] = Ranking{TeamId: 3, RankingFields: RankingFields{RankingPoints: 50, MatchPoints: 50, AutoPoints: 50, PostMatchPoints: 49, Played: 10, Random: 0.50}}
+	rankings[3] = Ranking{TeamId: 4, RankingFields: RankingFields{RankingPoints: 50, MatchPoints: 50, AutoPoints: 50, PostMatchPoints: 51, Played: 10, Random: 0.50}}
+	rankings[4] = Ranking{TeamId: 5, RankingFields: RankingFields{RankingPoints: 50, MatchPoints: 50, AutoPoints: 49, PostMatchPoints: 50, Played: 10, Random: 0.50}}
+	rankings[5] = Ranking{TeamId: 6, RankingFields: RankingFields{RankingPoints: 50, MatchPoints: 50, AutoPoints: 51, PostMatchPoints: 50, Played: 10, Random: 0.50}}
+	rankings[6] = Ranking{TeamId: 7, RankingFields: RankingFields{RankingPoints: 50, MatchPoints: 49, AutoPoints: 50, PostMatchPoints: 50, Played: 10, Random: 0.50}}
+	rankings[7] = Ranking{TeamId: 8, RankingFields: RankingFields{RankingPoints: 50, MatchPoints: 51, AutoPoints: 50, PostMatchPoints: 50, Played: 10, Random: 0.50}}
+	rankings[8] = Ranking{TeamId: 9, RankingFields: RankingFields{RankingPoints: 49, MatchPoints: 50, AutoPoints: 50, PostMatchPoints: 50, Played: 10, Random: 0.50}}
+	rankings[9] = Ranking{TeamId: 10, RankingFields: RankingFields{RankingPoints: 51, MatchPoints: 50, AutoPoints: 50, PostMatchPoints: 50, Played: 10, Random: 0.50}}
 	sort.Sort(rankings)
-	assert.Equal(t, 10, rankings[0].TeamId)
-	assert.Equal(t, 8, rankings[1].TeamId)
-	assert.Equal(t, 6, rankings[2].TeamId)
-	assert.Equal(t, 4, rankings[3].TeamId)
-	assert.Equal(t, 2, rankings[4].TeamId)
-	assert.Equal(t, 1, rankings[5].TeamId)
-	assert.Equal(t, 3, rankings[6].TeamId)
-	assert.Equal(t, 5, rankings[7].TeamId)
-	assert.Equal(t, 7, rankings[8].TeamId)
-	assert.Equal(t, 9, rankings[9].TeamId)
+	assert.Equal(t, []int{10, 8, 6, 4, 2, 1, 3, 5, 7, 9}, rankingTeamIds(rankings))
 
-	// Check with unequal number of matches played.
 	rankings = make(Rankings, 3)
-	rankings[0] = Ranking{1, 0, 0, RankingFields{10, 25, 25, 25, 0.49, 3, 2, 1, 5}}
-	rankings[1] = Ranking{2, 0, 0, RankingFields{19, 50, 50, 50, 0.51, 3, 2, 1, 9}}
-	rankings[2] = Ranking{3, 0, 0, RankingFields{20, 50, 50, 50, 0.51, 3, 2, 1, 10}}
+	rankings[0] = Ranking{TeamId: 1, RankingFields: RankingFields{RankingPoints: 10, MatchPoints: 25, AutoPoints: 25, PostMatchPoints: 25, Played: 5, Random: 0.49}}
+	rankings[1] = Ranking{TeamId: 2, RankingFields: RankingFields{RankingPoints: 19, MatchPoints: 50, AutoPoints: 50, PostMatchPoints: 50, Played: 9, Random: 0.51}}
+	rankings[2] = Ranking{TeamId: 3, RankingFields: RankingFields{RankingPoints: 20, MatchPoints: 50, AutoPoints: 50, PostMatchPoints: 50, Played: 10, Random: 0.51}}
 	sort.Sort(rankings)
-	assert.Equal(t, 2, rankings[0].TeamId)
-	assert.Equal(t, 3, rankings[1].TeamId)
-	assert.Equal(t, 1, rankings[2].TeamId)
+	assert.Equal(t, []int{2, 3, 1}, rankingTeamIds(rankings))
+}
+
+func rankingTeamIds(rankings Rankings) []int {
+	teamIds := make([]int, len(rankings))
+	for i, ranking := range rankings {
+		teamIds[i] = ranking.TeamId
+	}
+	return teamIds
 }

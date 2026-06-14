@@ -18,7 +18,11 @@ func CreateOrUpdateAward(database *model.Database, award *model.Award, createInt
 	}
 	var team *model.Team
 	if award.TeamId > 0 {
-		team, _ = database.GetTeamById(award.TeamId)
+		var err error
+		team, err = database.GetTeamById(award.TeamId)
+		if err != nil {
+			return err
+		}
 		if team == nil {
 			return fmt.Errorf("Team %d is not present at this event.", award.TeamId)
 		}
@@ -36,14 +40,16 @@ func CreateOrUpdateAward(database *model.Database, award *model.Award, createInt
 
 	// Create or update associated lower thirds.
 	awardIntroLowerThird := model.LowerThird{TopText: award.AwardName, AwardId: award.Id}
-	awardWinnerLowerThird := model.LowerThird{TopText: award.AwardName, BottomText: award.PersonName,
-		AwardId: award.Id}
+	awardWinnerLowerThird := model.LowerThird{
+		TopText: award.AwardName, BottomText: award.PersonName, AwardId: award.Id,
+	}
 	if team != nil {
 		if award.PersonName == "" {
 			awardWinnerLowerThird.BottomText = fmt.Sprintf("Team %d, %s", team.Id, team.Nickname)
 		} else {
-			awardWinnerLowerThird.BottomText = fmt.Sprintf("%s &ndash; Team %d, %s", award.PersonName, team.Id,
-				team.Nickname)
+			awardWinnerLowerThird.BottomText = fmt.Sprintf(
+				"%s &ndash; Team %d, %s", award.PersonName, team.Id, team.Nickname,
+			)
 		}
 	}
 	if awardWinnerLowerThird.BottomText == "" {
@@ -156,8 +162,12 @@ func CreateOrUpdateWinnerAndFinalistAwards(database *model.Database, winnerAllia
 	return nil
 }
 
-func createOrUpdateAwardLowerThird(database *model.Database, lowerThird *model.LowerThird,
-	existingLowerThirds []model.LowerThird, index int) error {
+func createOrUpdateAwardLowerThird(
+	database *model.Database,
+	lowerThird *model.LowerThird,
+	existingLowerThirds []model.LowerThird,
+	index int,
+) error {
 	if index < len(existingLowerThirds) {
 		lowerThird.Id = existingLowerThirds[index].Id
 		lowerThird.DisplayOrder = existingLowerThirds[index].DisplayOrder

@@ -1,171 +1,196 @@
 /*
   Copyright 2019 Team 254. All Rights Reserved.
   Author: pat@patfairbank.com (Patrick Fairbank)
+
+  Styles for the generic scoring interface.
 */
-html {
-  height: 100%;
-  -webkit-user-select: none;
-  -moz-user-select: none;
+
+:root {
+  --red: #c62828;
+  --red-dark: #7f1010;
+  --blue: #1565c0;
+  --blue-dark: #0b3d78;
+  --green: #238636;
+  --green-dark: #196127;
+  --panel-bg: #f4f6f8;
+  --text: #111;
+  --text-inverse: #fff;
+  --muted: #d8dde3;
 }
+
+button {
+  border: none;
+}
+
+button:hover:enabled {
+  cursor: pointer;
+}
+
+button:enabled:not(:active) {
+  box-shadow: black 0 4px 4px;
+}
+
+html,
 body {
   height: 100%;
-  background-color: #222;
+  overscroll-behavior: none;
 }
+
+body {
+  touch-action: manipulation;
+}
+
 .container {
-  padding-top: 2vw;
+  padding: 0;
   width: 100%;
-  height: 100%;
+  max-width: none;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  background: var(--panel-bg);
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+header {
+  width: 100%;
+  min-height: 56px;
+  color: var(--text-inverse);
+  background: #111;
+  display: flex;
   align-items: center;
-}
-#alliance {
-  width: 90%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  border-radius: 25px;
-  border: 1px solid #333;
-}
-#alliance[data-alliance="red"] {
-  background-color: #322;
-}
-#alliance[data-alliance="blue"] {
-  background-color: #223;
-}
-#matchName {
-  font-size: 2vw;
-}
-.scoring-section {
-  margin-bottom: 0.5vw;
-  display: flex;
-  font-size: 1.5vw;
-  color: #ccc;
-}
-.scoring-header>div{
-  height: 2.5vw;
-  margin: 0.4vw 1vw 0.4vw 0.2vw;
-  color: #666;
-}
-.robot-field {
-  width: 17vw;
-  height: 2.5vw;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0.4vw 0.2vw;
-}
-.team {
-  display: flex;
   justify-content: center;
+  font-size: 20pt;
+}
+
+.screen-title {
+  padding: 0 16px;
+  text-align: center;
+}
+
+main {
+  flex: 1;
+  width: 100%;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+#score-controls {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.alliance-score {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px;
+  color: var(--text-inverse);
+}
+
+.alliance-score.red {
+  background: var(--red-dark);
+}
+
+.alliance-score.blue {
+  background: var(--blue-dark);
+}
+
+.alliance-score h1 {
+  margin: 0;
+  font-size: 28pt;
+  line-height: 1;
+}
+
+.alliance-score label {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.65fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  font-size: 22pt;
   font-weight: bold;
 }
-.boolean[data-value="false"] {
-  background-color: #333;
-}
-.boolean[data-value="true"] {
-  background-color: #263;
-}
-.endgame-status[data-value="0"] {
-  background-color: #333;
-}
-.endgame-status[data-value="1"] {
-  background-color: #236;
-}
-.endgame-status[data-value="2"] {
-  background-color: #263;
-}
-.control-panel[data-value="disabled"] {
-  background-color: #333;
-}
-.control-panel[data-value="false"] {
-  background-color: #236;
-}
-.control-panel[data-value="true"] {
-  background-color: #263;
-}
-.control-panel-color[data-value="0"] {
-  background-color: #333;
-}
-.control-panel-color[data-value="0"][data-control-panel-status="1"] {
-  border: 3px solid red;
-}
-.control-panel-color[data-value="1"] {
-  background-color: #633;
-}
-.control-panel-color[data-value="2"] {
-  background-color: #263;
-}
-.control-panel-color[data-value="3"] {
-  background-color: #236;
-}
-.control-panel-color[data-value="4"] {
-  background-color: #882;
-}
-.shortcut {
-  margin: 0 0.2vw;
-  font-size: 1vw;
-  align-self: flex-start;
-}
-#elements {
+
+.alliance-score input {
   width: 100%;
-  display: flex;
-  justify-content: space-evenly;
-  align-items: center;
+  min-width: 0;
+  height: 82px;
+  border: 3px solid transparent;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 34pt;
+  font-weight: bold;
+  text-align: right;
+  color: var(--text);
 }
-.goal-header {
-  height: 5vw;
-  margin: 0.4vw 0vw;
-  color: #666;
+
+.alliance-score input:disabled {
+  background: var(--muted);
+  color: #6b7280;
+}
+
+#panel-actions {
+  height: 88px;
   display: flex;
-  flex-direction: column;
   justify-content: center;
 }
-.goal-period {
-  text-align: center;
-  color: #666;
+
+#commit {
+  width: min(520px, 100%);
+  height: 100%;
+  border-radius: 8px;
+  color: var(--text-inverse);
+  background-color: var(--green);
+  font-size: 22pt;
+  font-weight: bold;
 }
-.goal {
-  width: 13vw;
-  height: 5vw;
-  margin: 0.4vw 3vw;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+
+#commit:disabled {
+  background-color: var(--green-dark);
+  opacity: 0.35;
+  box-shadow: none;
 }
-.number-button {
-  width: 4vw;
-  height: 4vw;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 1px solid #666;
-  border-radius: 0.5vw;
-  font-size: 3vw;
-}
-.plus {
-  background: #263;
-}
-.minus {
-  background: #633;
-}
-#instructions {
-  margin-top: 0.3vw;
-}
-#postMatchMessage {
-  height: 5vw;
-  display: none;
-  align-items: center;
-  font-size: 1.5vw;
-  color: #c90;
-}
-#commitMatchScore {
-  height: 5vw;
-  display: none;
-  align-items: center;
-}
-#commitMatchScore>button {
-  font-size: 1vw;
+
+@media (max-width: 760px) {
+  header {
+    min-height: 48px;
+    font-size: 16pt;
+  }
+
+  main {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  #score-controls {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .alliance-score {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .alliance-score h1 {
+    font-size: 22pt;
+  }
+
+  .alliance-score label {
+    grid-template-columns: 110px minmax(0, 1fr);
+    font-size: 16pt;
+  }
+
+  .alliance-score input {
+    height: 56px;
+    font-size: 24pt;
+  }
+
+  #panel-actions {
+    height: 64px;
+  }
 }

@@ -7,21 +7,27 @@ package web
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
+	"github.com/Team254/cheesy-arena-lite/tournament"
+	"github.com/Team254/cheesy-arena-lite/websocket"
+	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
 )
 
-type RankedTeam struct {
-	Rank   int
-	TeamId int
-	Picked bool
-}
+// Global var to hold configurable time limit for selections. A value of zero disables the timer.
+var allianceSelectionTimeLimitSec = 45
 
-// Global var to hold the team rankings during the alliance selection.
-var cachedRankedTeams []*RankedTeam
+// Global var to hold the time limit that the current timer was started with
+var currentAllianceSelectionTimeLimitSec = 0
+
+// The time limit for the break between rounds
+const allianceSelectionBreakDurationSec = 120
+
+// Global var to hold a ticker used for the alliance selection timer.
+var allianceSelectionTicker *time.Ticker
 
 // Shows the alliance selection page.
 func (web *Web) allianceSelectionGetHandler(w http.ResponseWriter, r *http.Request) {
@@ -44,9 +50,8 @@ func (web *Web) allianceSelectionPostHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Reset picked state for each team in preparation for reconstructing it.
-	newRankedTeams := make([]*RankedTeam, len(cachedRankedTeams))
-	for i, team := range cachedRankedTeams {
-		newRankedTeams[i] = &RankedTeam{team.Rank, team.TeamId, false}
+	for i := range web.arena.AllianceSelectionRankedTeams {
+		web.arena.AllianceSelectionRankedTeams[i].Picked = false
 	}
 
 	// Iterate through all selections and update the alliances.
@@ -62,15 +67,16 @@ func (web *Web) allianceSelectionPostHandler(w http.ResponseWriter, r *http.Requ
 					return
 				}
 				found := false
-				for _, team := range newRankedTeams {
+				for k, team := range web.arena.AllianceSelectionRankedTeams {
 					if team.TeamId == teamId {
 						if team.Picked {
-							web.renderAllianceSelection(w, r,
-								fmt.Sprintf("Team %d is already part of an alliance.", teamId))
+							web.renderAllianceSelection(
+								w, r, fmt.Sprintf("Team %d is already part of an alliance.", teamId),
+							)
 							return
 						}
 						found = true
-						team.Picked = true
+						web.arena.AllianceSelectionRankedTeams[k].Picked = true
 						web.arena.AllianceSelectionAlliances[i].TeamIds[j] = teamId
 						break
 					}
@@ -88,7 +94,6 @@ func (web *Web) allianceSelectionPostHandler(w http.ResponseWriter, r *http.Requ
 			}
 		}
 	}
-	cachedRankedTeams = newRankedTeams
 
 	web.arena.AllianceSelectionNotifier.Notify()
 	http.Redirect(w, r, "/alliance_selection", 303)
@@ -110,12 +115,12 @@ func (web *Web) allianceSelectionStartHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	// Create a blank alliance set matching the event configuration.
-	web.arena.AllianceSelectionAlliances = make([]model.Alliance, web.arena.EventSettings.NumElimAlliances)
+	web.arena.AllianceSelectionAlliances = make([]model.Alliance, web.arena.EventSettings.NumPlayoffAlliances)
 	teamsPerAlliance := 3
 	if web.arena.EventSettings.SelectionRound3Order != "" {
 		teamsPerAlliance = 4
 	}
-	for i := 0; i < web.arena.EventSettings.NumElimAlliances; i++ {
+	for i := 0; i < web.arena.EventSettings.NumPlayoffAlliances; i++ {
 		web.arena.AllianceSelectionAlliances[i].Id = i + 1
 		web.arena.AllianceSelectionAlliances[i].TeamIds = make([]int, teamsPerAlliance)
 	}
@@ -126,9 +131,13 @@ func (web *Web) allianceSelectionStartHandler(w http.ResponseWriter, r *http.Req
 		handleWebErr(w, err)
 		return
 	}
-	cachedRankedTeams = make([]*RankedTeam, len(rankings))
+	web.arena.AllianceSelectionRankedTeams = make([]model.AllianceSelectionRankedTeam, len(rankings))
 	for i, ranking := range rankings {
-		cachedRankedTeams[i] = &RankedTeam{i + 1, ranking.TeamId, false}
+		web.arena.AllianceSelectionRankedTeams[i] = model.AllianceSelectionRankedTeam{
+			Rank:   i + 1,
+			TeamId: ranking.TeamId,
+			Picked: false,
+		}
 	}
 
 	web.arena.AllianceSelectionNotifier.Notify()
@@ -146,17 +155,11 @@ func (web *Web) allianceSelectionResetHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Delete any elimination matches that were already created (but not played since they would fail the above check).
-	matches, err := web.arena.Database.GetMatchesByType("elimination")
+	// Delete any playoff matches that were already created (but not played since they would fail the above check).
+	err := web.deleteMatchDataForType(model.Playoff)
 	if err != nil {
 		handleWebErr(w, err)
 		return
-	}
-	for _, match := range matches {
-		if err = web.arena.Database.DeleteMatch(match.Id); err != nil {
-			handleWebErr(w, err)
-			return
-		}
 	}
 
 	// Delete the saved alliances.
@@ -165,19 +168,13 @@ func (web *Web) allianceSelectionResetHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Replace the current in-memory bracket if it was populated with teams.
-	if err = web.arena.CreatePlayoffBracket(); err != nil {
-		handleWebErr(w, err)
-		return
-	}
-
 	web.arena.AllianceSelectionAlliances = []model.Alliance{}
-	cachedRankedTeams = []*RankedTeam{}
+	web.arena.AllianceSelectionRankedTeams = []model.AllianceSelectionRankedTeam{}
 	web.arena.AllianceSelectionNotifier.Notify()
 	http.Redirect(w, r, "/alliance_selection", 303)
 }
 
-// Saves the selected alliances to the database and generates the first round of elimination matches.
+// Saves the selected alliances to the database and generates the first round of playoff matches.
 func (web *Web) allianceSelectionFinalizeHandler(w http.ResponseWriter, r *http.Request) {
 	if !web.userIsAdmin(w, r) {
 		return
@@ -220,12 +217,15 @@ func (web *Web) allianceSelectionFinalizeHandler(w http.ResponseWriter, r *http.
 		}
 	}
 
-	// Generate the first round of elimination matches.
-	if err = web.arena.CreatePlayoffBracket(); err != nil {
+	// Generate the first round of playoff matches.
+	if err = web.arena.CreatePlayoffMatches(startTime); err != nil {
 		handleWebErr(w, err)
 		return
 	}
-	if err = web.arena.UpdatePlayoffBracket(&startTime); err != nil {
+
+	// Reset yellow cards.
+	err = tournament.CalculateTeamCards(web.arena.Database, model.Playoff)
+	if err != nil {
 		handleWebErr(w, err)
 		return
 	}
@@ -237,44 +237,118 @@ func (web *Web) allianceSelectionFinalizeHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if web.arena.EventSettings.TbaPublishingEnabled {
-		// Publish alliances and schedule to The Blue Alliance.
-		err = web.arena.TbaClient.PublishAlliances(web.arena.Database)
-		if err != nil {
-			web.renderAllianceSelection(w, r, fmt.Sprintf("Failed to publish alliances: %s", err.Error()))
-			return
-		}
-		err = web.arena.TbaClient.PublishMatches(web.arena.Database)
-		if err != nil {
-			web.renderAllianceSelection(w, r, fmt.Sprintf("Failed to publish matches: %s", err.Error()))
-			return
-		}
-	}
-
 	// Signal displays of the bracket to update themselves.
 	web.arena.ScorePostedNotifier.Notify()
 
 	// Load the first playoff match.
-	matches, err := web.arena.Database.GetMatchesByType("elimination")
-	if err == nil && len(matches) > 0 {
-		_ = web.arena.LoadMatch(&matches[0])
+	matches, err := web.arena.Database.GetMatchesByType(model.Playoff, false)
+	if err != nil {
+		web.renderAllianceSelection(w, r, fmt.Sprintf("Failed to load playoff matches: %s", err.Error()))
+		return
+	}
+	if len(matches) > 0 {
+		if err = web.arena.LoadMatch(&matches[0]); err != nil {
+			web.renderAllianceSelection(w, r, fmt.Sprintf("Failed to load playoff match: %s", err.Error()))
+			return
+		}
 	}
 
 	http.Redirect(w, r, "/match_play", 303)
 }
 
-// Publishes the alliances to the web.
-func (web *Web) allianceSelectionPublishHandler(w http.ResponseWriter, r *http.Request) {
+// The websocket endpoint for the alliance selection client to send control commands and receive status updates.
+func (web *Web) allianceSelectionWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	if !web.userIsAdmin(w, r) {
 		return
 	}
 
-	err := web.arena.TbaClient.PublishAlliances(web.arena.Database)
+	ws, err := websocket.NewWebsocket(w, r)
 	if err != nil {
-		http.Error(w, "Failed to publish alliances: "+err.Error(), 500)
+		handleWebErr(w, err)
 		return
 	}
-	http.Redirect(w, r, "/alliance_selection", 303)
+	defer closeWebsocket(ws)
+
+	// Subscribe the websocket to the notifiers whose messages will be passed on to the client, in a separate goroutine.
+	go ws.HandleNotifiers(web.arena.AllianceSelectionNotifier, web.arena.AudienceDisplayModeNotifier)
+
+	// Loop, waiting for commands and responding to them, until the client closes the connection.
+	for {
+		messageType, data, err := ws.Read()
+		if err != nil {
+			if err == io.EOF {
+				// Client has closed the connection; nothing to do here.
+				return
+			}
+			log.Println(err)
+			return
+		}
+
+		switch messageType {
+		case "setTimer":
+			if timeLimitSec, ok := data.(float64); ok {
+				allianceSelectionTimeLimitSec = int(timeLimitSec)
+			} else {
+				writeWebsocketError(ws, "Invalid time limit value.")
+			}
+		case "startTimer":
+			if allianceSelectionTicker != nil {
+				allianceSelectionTicker.Stop()
+			}
+			if web.arena.AllianceSelectionTimeRemainingSec == 0 {
+				web.arena.AllianceSelectionTimeRemainingSec = allianceSelectionTimeLimitSec
+				currentAllianceSelectionTimeLimitSec = allianceSelectionTimeLimitSec
+			}
+			web.arena.AllianceSelectionShowTimer = true
+			web.arena.AllianceSelectionNotifier.Notify()
+			allianceSelectionTicker = time.NewTicker(time.Second)
+			go func() {
+				for range allianceSelectionTicker.C {
+					web.arena.AllianceSelectionTimeRemainingSec--
+					web.arena.AllianceSelectionNotifier.Notify()
+
+					if web.arena.AllianceSelectionTimeRemainingSec <= 0 {
+						allianceSelectionTicker.Stop()
+					}
+
+					// Only play sounds if we are not in a break between rounds
+					if currentAllianceSelectionTimeLimitSec != allianceSelectionBreakDurationSec {
+						if web.arena.AllianceSelectionTimeRemainingSec == 5 {
+							web.arena.PlaySound("pick_clock")
+						} else if web.arena.AllianceSelectionTimeRemainingSec == 0 {
+							web.arena.PlaySound("pick_clock_expired")
+						}
+					}
+				}
+			}()
+		case "stopTimer":
+			if allianceSelectionTicker != nil {
+				allianceSelectionTicker.Stop()
+			}
+			web.arena.AllianceSelectionNotifier.Notify()
+		case "restartTimer":
+			web.arena.AllianceSelectionShowTimer = true
+			web.arena.AllianceSelectionTimeRemainingSec = allianceSelectionTimeLimitSec
+			currentAllianceSelectionTimeLimitSec = allianceSelectionTimeLimitSec
+			web.arena.AllianceSelectionNotifier.Notify()
+		case "hideTimer":
+			if allianceSelectionTicker != nil {
+				allianceSelectionTicker.Stop()
+			}
+			web.arena.AllianceSelectionShowTimer = false
+			web.arena.AllianceSelectionTimeRemainingSec = 0
+			web.arena.AllianceSelectionNotifier.Notify()
+		case "setAudienceDisplay":
+			mode, ok := data.(string)
+			if !ok {
+				writeWebsocketError(ws, fmt.Sprintf("Failed to parse '%s' message.", messageType))
+				continue
+			}
+			web.arena.SetAudienceDisplayMode(mode)
+		default:
+			writeWebsocketError(ws, fmt.Sprintf("Invalid message type '%s'.", messageType))
+		}
+	}
 }
 
 func (web *Web) renderAllianceSelection(w http.ResponseWriter, r *http.Request, errorMessage string) {
@@ -289,7 +363,9 @@ func (web *Web) renderAllianceSelection(w http.ResponseWriter, r *http.Request, 
 		}
 	}
 
-	template, err := web.parseFiles("templates/alliance_selection.html", "templates/base.html")
+	template, err := web.parseFiles(
+		"templates/alliance_selection.html", "templates/audience_display_radio_buttons.html", "templates/base.html",
+	)
 	if err != nil {
 		handleWebErr(w, err)
 		return
@@ -298,11 +374,20 @@ func (web *Web) renderAllianceSelection(w http.ResponseWriter, r *http.Request, 
 	data := struct {
 		*model.EventSettings
 		Alliances    []model.Alliance
-		RankedTeams  []*RankedTeam
+		RankedTeams  []model.AllianceSelectionRankedTeam
 		NextRow      int
 		NextCol      int
 		ErrorMessage string
-	}{web.arena.EventSettings, web.arena.AllianceSelectionAlliances, cachedRankedTeams, nextRow, nextCol, errorMessage}
+		TimeLimitSec int
+	}{
+		web.arena.EventSettings,
+		web.arena.AllianceSelectionAlliances,
+		web.arena.AllianceSelectionRankedTeams,
+		nextRow,
+		nextCol,
+		errorMessage,
+		allianceSelectionTimeLimitSec,
+	}
 	err = template.ExecuteTemplate(w, "base", data)
 	if err != nil {
 		handleWebErr(w, err)
@@ -310,23 +395,23 @@ func (web *Web) renderAllianceSelection(w http.ResponseWriter, r *http.Request, 
 	}
 }
 
-// Returns true if it is safe to change the alliance selection (i.e. no elimination matches exist yet).
+// Returns true if it is safe to change the alliance selection (i.e. no playoff matches exist yet).
 func (web *Web) canModifyAllianceSelection() bool {
-	matches, err := web.arena.Database.GetMatchesByType("elimination")
+	matches, err := web.arena.Database.GetMatchesByType(model.Playoff, true)
 	if err != nil || len(matches) > 0 {
 		return false
 	}
 	return true
 }
 
-// Returns true if it is safe to reset the alliance selection (i.e. no elimination matches have been played yet).
+// Returns true if it is safe to reset the alliance selection (i.e. no playoff matches have been played yet).
 func (web *Web) canResetAllianceSelection() bool {
-	matches, err := web.arena.Database.GetMatchesByType("elimination")
+	matches, err := web.arena.Database.GetMatchesByType(model.Playoff, true)
 	if err != nil {
 		return false
 	}
 	for _, match := range matches {
-		if match.Status != game.MatchNotPlayed {
+		if match.IsComplete() {
 			return false
 		}
 	}

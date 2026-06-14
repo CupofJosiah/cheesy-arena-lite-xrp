@@ -6,8 +6,10 @@
         margin: 0;
         size: landscape;
       }
+
       #bracket {
         position: fixed;
+        width: 1920px;
         top: -60px;
         left: -250px;
         scale: 0.75;
@@ -15,7 +17,9 @@
     </style>
   </head>
   <body>
-    <div id="bracket"><div>{{.}}</div></div>
+    <div id="bracket">
+      <div>{{.}}</div>
+    </div>
     <script>
       window.print();
     </script>

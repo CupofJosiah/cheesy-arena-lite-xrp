@@ -5,6 +5,7 @@ package web
 
 import (
 	"bytes"
+	"github.com/Team254/cheesy-arena-lite/field"
 	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/Team254/cheesy-arena-lite/tournament"
@@ -24,60 +25,229 @@ func TestSetupSettings(t *testing.T) {
 	assert.Equal(t, 200, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), "Untitled Event")
 	assert.Contains(t, recorder.Body.String(), "8")
-	assert.NotContains(t, recorder.Body.String(), "tbaPublishingEnabled\" checked")
+	assert.Contains(t, recorder.Body.String(), "autoDurationSec")
+	assert.Contains(t, recorder.Body.String(), "pauseDurationSec")
+	assert.Contains(t, recorder.Body.String(), "teleopDurationSec")
+	assert.Contains(t, recorder.Body.String(), "warningSoundTimeSec")
+	assert.NotContains(t, recorder.Body.String(), "transitionShiftDurationSec")
+	assert.NotContains(t, recorder.Body.String(), "shiftDurationSec")
+	assert.NotContains(t, recorder.Body.String(), "endgameDurationSec")
+	assert.NotContains(t, recorder.Body.String(), "tbaPublishingEnabled")
+	assert.NotContains(t, recorder.Body.String(), "Publishing Operations")
 
 	// Change the settings and check the response.
-	recorder = web.postHttpResponse("/setup/settings", "name=Chezy Champs&code=CC&elimType=single&numElimAlliances=16&"+
-		"tbaPublishingEnabled=on&tbaEventCode=2014cc&tbaSecretId=secretId&tbaSecret=tbasec")
+	recorder = web.postHttpResponse(
+		"/setup/settings",
+		"name=Chezy Champs&code=CC&playoffType=single&numPlayoffAlliances=16&tbaPublishingEnabled=on&"+
+			"tbaEventCode=2014cc&tbaSecretId=secretId&tbaSecret=tbasec&autoDurationSec=12&pauseDurationSec=4&"+
+			"teleopDurationSec=120&warningSoundTimeSec=20",
+	)
 	assert.Equal(t, 303, recorder.Code)
+	assert.Equal(t, "/setup/settings#event", recorder.Header().Get("Location"))
 	recorder = web.getHttpResponse("/setup/settings")
 	assert.Contains(t, recorder.Body.String(), "Chezy Champs")
 	assert.Contains(t, recorder.Body.String(), "16")
-	assert.Contains(t, recorder.Body.String(), "tbaPublishingEnabled\" checked")
 	assert.Contains(t, recorder.Body.String(), "2014cc")
-	assert.Contains(t, recorder.Body.String(), "secretId")
-	assert.Contains(t, recorder.Body.String(), "tbasec")
+	assert.NotContains(t, recorder.Body.String(), "secretId")
+	assert.NotContains(t, recorder.Body.String(), "tbasec")
+	assert.False(t, web.arena.EventSettings.TbaPublishingEnabled)
+	assert.Equal(t, 12, web.arena.EventSettings.AutoDurationSec)
+	assert.Equal(t, 4, web.arena.EventSettings.PauseDurationSec)
+	assert.Equal(t, 120, web.arena.EventSettings.TeleopDurationSec)
+	assert.Equal(t, 20, web.arena.EventSettings.WarningSoundTimeSec)
+	assert.Equal(t, 120, game.MatchTiming.TeleopDurationSec)
+
+	recorder = web.postHttpResponse("/setup/settings", "name=Field Tab Event&activeSettingsTab=field")
+	assert.Equal(t, 303, recorder.Code)
+	assert.Equal(t, "/setup/settings#field", recorder.Header().Get("Location"))
+}
+
+func TestSetupSettingsBlockedDuringMatch(t *testing.T) {
+	web := setupTestWeb(t)
+	web.arena.EventSettings.Name = "Original Event"
+	web.arena.MatchState = field.AutoPeriod
+
+	recorder := web.postHttpResponse("/setup/settings", "name=Changed Event&activeSettingsTab=field")
+
+	assert.Equal(t, 200, recorder.Code)
+	assert.Contains(
+		t, recorder.Body.String(), "Settings cannot be changed while a match is in progress or is uncommitted.",
+	)
+	assert.Contains(t, recorder.Body.String(), "hash = \"#field\"")
+	assert.Equal(t, "Original Event", web.arena.EventSettings.Name)
+}
+
+func TestSetupSettingsAllowedDuringTimeoutStates(t *testing.T) {
+	for _, matchState := range []field.MatchState{field.TimeoutActive, field.PostTimeout} {
+		web := setupTestWeb(t)
+		web.arena.MatchState = matchState
+
+		recorder := web.postHttpResponse("/setup/settings", "name=Changed Event")
+
+		assert.Equal(t, 303, recorder.Code)
+		assert.Equal(t, "Changed Event", web.arena.EventSettings.Name)
+	}
+}
+
+func TestSettingsSaveAllowed(t *testing.T) {
+	testCases := []struct {
+		matchState field.MatchState
+		allowed    bool
+	}{
+		{field.PreMatch, true},
+		{field.StartMatch, false},
+		{field.AutoPeriod, false},
+		{field.PausePeriod, false},
+		{field.TeleopPeriod, false},
+		{field.PostMatch, false},
+		{field.TimeoutActive, true},
+		{field.PostTimeout, true},
+	}
+
+	for _, testCase := range testCases {
+		assert.Equal(t, testCase.allowed, settingsSaveAllowed(testCase.matchState))
+	}
 }
 
 func TestSetupSettingsDoubleElimination(t *testing.T) {
 	web := setupTestWeb(t)
 
-	recorder := web.postHttpResponse("/setup/settings", "elimType=double&numElimAlliances=3")
+	recorder := web.postHttpResponse("/setup/settings", "playoffType=DoubleEliminationPlayoff&numPlayoffAlliances=4")
 	assert.Equal(t, 303, recorder.Code)
-	assert.Equal(t, "double", web.arena.EventSettings.ElimType)
-	assert.Equal(t, 8, web.arena.EventSettings.NumElimAlliances)
+	assert.Equal(t, model.DoubleEliminationPlayoff, web.arena.EventSettings.PlayoffType)
+	assert.Equal(t, 4, web.arena.EventSettings.NumPlayoffAlliances)
+
+	recorder = web.postHttpResponse("/setup/settings", "playoffType=DoubleEliminationPlayoff&numPlayoffAlliances=3")
+	assert.Equal(t, 200, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "Number of alliances for double elimination must be 4 or 8.")
+	assert.Equal(t, 4, web.arena.EventSettings.NumPlayoffAlliances)
 }
 
 func TestSetupSettingsInvalidValues(t *testing.T) {
 	web := setupTestWeb(t)
+	recorder := web.postHttpResponse("/setup/settings", "playoffType=SingleEliminationPlayoff&numPlayoffAlliances=8")
+	assert.Equal(t, 303, recorder.Code)
 
 	// Invalid number of alliances.
-	recorder := web.postHttpResponse("/setup/settings", "numAlliances=1")
+	recorder = web.postHttpResponse("/setup/settings", "playoffType=SingleEliminationPlayoff&numAlliances=1")
 	assert.Contains(t, recorder.Body.String(), "must be between 2 and 16")
+
+	recorder = web.postHttpResponse("/setup/settings", "playoffType=DoubleEliminationPlayoff&numPlayoffAlliances=3")
+	assert.Contains(t, recorder.Body.String(), "must be 4 or 8")
+
+	// Changing the playoff type after alliance selection is finalized.
+	assert.Nil(t, web.arena.Database.CreateAlliance(&model.Alliance{Id: 1}))
+	recorder = web.postHttpResponse("/setup/settings", "playoffType=DoubleEliminationPlayoff")
+	assert.Contains(t, recorder.Body.String(), "Cannot change playoff type or size after alliance selection")
+
+	// Changing the playoff size after alliance selection is finalized.
+	recorder = web.postHttpResponse("/setup/settings", "numPlayoffAlliances=2")
+	assert.Contains(t, recorder.Body.String(), "Cannot change playoff type or size after alliance selection")
 }
 
 func TestSetupSettingsClearDb(t *testing.T) {
+	createData := func(web *Web) {
+		assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: 254}))
+		assert.Nil(t, web.arena.Database.CreateMatch(&model.Match{Type: model.Practice}))
+		assert.Nil(t, web.arena.Database.CreateMatch(&model.Match{Type: model.Qualification}))
+		assert.Nil(t, web.arena.Database.CreateMatch(&model.Match{Type: model.Playoff}))
+		assert.Nil(t, web.arena.Database.CreateMatchResult(&model.MatchResult{MatchId: 1, PlayNumber: 1}))
+		assert.Nil(t, web.arena.Database.CreateMatchResult(&model.MatchResult{MatchId: 1, PlayNumber: 2}))
+		assert.Nil(t, web.arena.Database.CreateMatchResult(&model.MatchResult{MatchId: 2, PlayNumber: 1}))
+		assert.Nil(t, web.arena.Database.CreateMatchResult(&model.MatchResult{MatchId: 3, PlayNumber: 1}))
+		assert.Nil(t, web.arena.Database.CreateRanking(&game.Ranking{TeamId: 254}))
+		assert.Nil(t, web.arena.Database.CreateAlliance(&model.Alliance{Id: 1}))
+		web.arena.AllianceSelectionAlliances = append(web.arena.AllianceSelectionAlliances, model.Alliance{Id: 1})
+	}
+
+	// Test clearing practice data.
 	web := setupTestWeb(t)
-
-	assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: 254}))
-	assert.Nil(t, web.arena.Database.CreateMatch(&model.Match{Type: "qualification"}))
-	assert.Nil(t, web.arena.Database.CreateMatchResult(new(model.MatchResult)))
-	assert.Nil(t, web.arena.Database.CreateRanking(&game.Ranking{TeamId: 254}))
-	assert.Nil(t, web.arena.Database.CreateAlliance(&model.Alliance{Id: 1}))
-	recorder := web.postHttpResponse("/setup/db/clear", "")
+	createData(web)
+	recorder := web.postHttpResponse("/setup/db/clear/practice", "")
 	assert.Equal(t, 303, recorder.Code)
-
 	teams, _ := web.arena.Database.GetAllTeams()
 	assert.NotEmpty(t, teams)
-	matches, _ := web.arena.Database.GetMatchesByType("qualification")
+	matches, _ := web.arena.Database.GetMatchesByType(model.Practice, true)
 	assert.Empty(t, matches)
+	matchResult, _ := web.arena.Database.GetMatchResultForMatch(1)
+	assert.Nil(t, matchResult)
+	matches, _ = web.arena.Database.GetMatchesByType(model.Qualification, true)
+	assert.NotEmpty(t, matches)
+	matchResult, _ = web.arena.Database.GetMatchResultForMatch(2)
+	assert.NotNil(t, matchResult)
+	matches, _ = web.arena.Database.GetMatchesByType(model.Playoff, true)
+	assert.NotEmpty(t, matches)
+	matchResult, _ = web.arena.Database.GetMatchResultForMatch(3)
+	assert.NotNil(t, matchResult)
 	rankings, _ := web.arena.Database.GetAllRankings()
+	assert.NotEmpty(t, rankings)
+	tournament.CalculateRankings(web.arena.Database, false)
+	assert.NotEmpty(t, rankings)
+	alliances, _ := web.arena.Database.GetAllAlliances()
+	assert.NotEmpty(t, alliances)
+	assert.NotEmpty(t, web.arena.AllianceSelectionAlliances)
+
+	// Test clearing qualification data.
+	web = setupTestWeb(t)
+	createData(web)
+	recorder = web.postHttpResponse("/setup/db/clear/qualification", "")
+	assert.Equal(t, 303, recorder.Code)
+	teams, _ = web.arena.Database.GetAllTeams()
+	assert.NotEmpty(t, teams)
+	matches, _ = web.arena.Database.GetMatchesByType(model.Practice, true)
+	assert.NotEmpty(t, matches)
+	matchResult, _ = web.arena.Database.GetMatchResultForMatch(1)
+	assert.NotNil(t, matchResult)
+	matches, _ = web.arena.Database.GetMatchesByType(model.Qualification, true)
+	assert.Empty(t, matches)
+	matchResult, _ = web.arena.Database.GetMatchResultForMatch(2)
+	assert.Nil(t, matchResult)
+	matches, _ = web.arena.Database.GetMatchesByType(model.Playoff, true)
+	assert.NotEmpty(t, matches)
+	matchResult, _ = web.arena.Database.GetMatchResultForMatch(3)
+	assert.NotNil(t, matchResult)
+	rankings, _ = web.arena.Database.GetAllRankings()
 	assert.Empty(t, rankings)
 	tournament.CalculateRankings(web.arena.Database, false)
 	assert.Empty(t, rankings)
-	alliances, _ := web.arena.Database.GetAllAlliances()
+	alliances, _ = web.arena.Database.GetAllAlliances()
+	assert.NotEmpty(t, alliances)
+	assert.NotEmpty(t, web.arena.AllianceSelectionAlliances)
+
+	// Test clearing playoff data.
+	web = setupTestWeb(t)
+	createData(web)
+	recorder = web.postHttpResponse("/setup/db/clear/playoff", "")
+	assert.Equal(t, 303, recorder.Code)
+	teams, _ = web.arena.Database.GetAllTeams()
+	assert.NotEmpty(t, teams)
+	matches, _ = web.arena.Database.GetMatchesByType(model.Practice, true)
+	assert.NotEmpty(t, matches)
+	matchResult, _ = web.arena.Database.GetMatchResultForMatch(1)
+	assert.NotNil(t, matchResult)
+	matches, _ = web.arena.Database.GetMatchesByType(model.Qualification, true)
+	assert.NotEmpty(t, matches)
+	matchResult, _ = web.arena.Database.GetMatchResultForMatch(2)
+	assert.NotNil(t, matchResult)
+	matches, _ = web.arena.Database.GetMatchesByType(model.Playoff, true)
+	assert.Empty(t, matches)
+	matchResult, _ = web.arena.Database.GetMatchResultForMatch(3)
+	assert.Nil(t, matchResult)
+	rankings, _ = web.arena.Database.GetAllRankings()
+	assert.NotEmpty(t, rankings)
+	tournament.CalculateRankings(web.arena.Database, false)
+	assert.NotEmpty(t, rankings)
+	alliances, _ = web.arena.Database.GetAllAlliances()
 	assert.Empty(t, alliances)
 	assert.Empty(t, web.arena.AllianceSelectionAlliances)
+
+	// Test with invalid match types.
+	recorder = web.postHttpResponse("/setup/db/clear/all", "")
+	assert.Equal(t, 200, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "Invalid tournament stage to clear")
+	recorder = web.postHttpResponse("/setup/db/clear/test", "")
+	assert.Equal(t, 200, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "Invalid tournament stage to clear")
 }
 
 func TestSetupSettingsBackupRestoreDb(t *testing.T) {
@@ -103,8 +273,7 @@ func TestSetupSettingsBackupRestoreDb(t *testing.T) {
 	assert.NotEqual(t, "Chezy Champs", web.arena.EventSettings.Name)
 
 	// Check restoring with a corrupt file.
-	recorder = web.postFileHttpResponse("/setup/db/restore", "databaseFile",
-		bytes.NewBufferString("invalid"))
+	recorder = web.postFileHttpResponse("/setup/db/restore", "databaseFile", bytes.NewBufferString("invalid"))
 	assert.Contains(t, recorder.Body.String(), "Could not read uploaded database backup file")
 	assert.NotEqual(t, "Chezy Champs", web.arena.EventSettings.Name)
 

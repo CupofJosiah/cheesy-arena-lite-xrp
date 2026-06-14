@@ -1,13 +1,12 @@
 // Copyright 2014 Team 254. All Rights Reserved.
 // Author: pat@patfairbank.com (Patrick Fairbank)
 
-// Go version 1.20 or newer is required due to how it initializes the PRNG.
-//go:build go1.20
-
 package main
 
 import (
+	"flag"
 	"github.com/Team254/cheesy-arena-lite/field"
+	"github.com/Team254/cheesy-arena-lite/network"
 	"github.com/Team254/cheesy-arena-lite/web"
 	"log"
 )
@@ -17,6 +16,9 @@ const httpPort = 8080
 
 // Main entry point for the application.
 func main() {
+	flag.BoolVar(&network.DevMode, "dev", false, "Bind driver station listeners to all IP addresses for development")
+	flag.Parse()
+
 	arena, err := field.NewArena(eventDbPath)
 	if err != nil {
 		log.Fatalln("Error during startup: ", err)

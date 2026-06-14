@@ -18,12 +18,45 @@ import (
 func TestMatchesApi(t *testing.T) {
 	web := setupTestWeb(t)
 
-	match1 := model.Match{Type: "qualification", DisplayName: "1", Time: time.Unix(0, 0), Red1: 1, Red2: 2, Red3: 3,
-		Blue1: 4, Blue2: 5, Blue3: 6, Blue1IsSurrogate: true, Blue2IsSurrogate: true, Blue3IsSurrogate: true}
-	match2 := model.Match{Type: "qualification", DisplayName: "2", Time: time.Unix(600, 0), Red1: 7, Red2: 8, Red3: 9,
-		Blue1: 10, Blue2: 11, Blue3: 12, Red1IsSurrogate: true, Red2IsSurrogate: true, Red3IsSurrogate: true}
-	match3 := model.Match{Type: "practice", DisplayName: "1", Time: time.Now(), Red1: 6, Red2: 5, Red3: 4,
-		Blue1: 3, Blue2: 2, Blue3: 1}
+	match1 := model.Match{
+		Type:             model.Qualification,
+		ShortName:        "Q1",
+		Time:             time.Unix(0, 0),
+		Red1:             1,
+		Red2:             2,
+		Red3:             3,
+		Blue1:            4,
+		Blue2:            5,
+		Blue3:            6,
+		Blue1IsSurrogate: true,
+		Blue2IsSurrogate: true,
+		Blue3IsSurrogate: true,
+	}
+	match2 := model.Match{
+		Type:            model.Qualification,
+		ShortName:       "Q2",
+		Time:            time.Unix(600, 0),
+		Red1:            7,
+		Red2:            8,
+		Red3:            9,
+		Blue1:           10,
+		Blue2:           11,
+		Blue3:           12,
+		Red1IsSurrogate: true,
+		Red2IsSurrogate: true,
+		Red3IsSurrogate: true,
+	}
+	match3 := model.Match{
+		Type:      model.Practice,
+		ShortName: "P1",
+		Time:      time.Now(),
+		Red1:      6,
+		Red2:      5,
+		Red3:      4,
+		Blue1:     3,
+		Blue2:     2,
+		Blue3:     1,
+	}
 	web.arena.Database.CreateMatch(&match1)
 	web.arena.Database.CreateMatch(&match2)
 	web.arena.Database.CreateMatch(&match3)
@@ -61,12 +94,14 @@ func TestRankingsApi(t *testing.T) {
 	assert.Equal(t, 0, len(rankingsData.Rankings))
 	assert.Equal(t, "", rankingsData.HighestPlayedMatch)
 
-	ranking1 := RankingWithNickname{*game.TestRanking2(), "Simbots"}
-	ranking2 := RankingWithNickname{*game.TestRanking1(), "ChezyPof"}
+	ranking1Base := game.TestRanking2()
+	ranking2Base := game.TestRanking1()
+	ranking1 := RankingWithNickname{*ranking1Base, "Simbots", ranking1Base.TeleopPoints()}
+	ranking2 := RankingWithNickname{*ranking2Base, "ChezyPof", ranking2Base.TeleopPoints()}
 	web.arena.Database.CreateRanking(&ranking1.Ranking)
 	web.arena.Database.CreateRanking(&ranking2.Ranking)
-	web.arena.Database.CreateMatch(&model.Match{Type: "qualification", DisplayName: "29", Status: game.RedWonMatch})
-	web.arena.Database.CreateMatch(&model.Match{Type: "qualification", DisplayName: "30"})
+	web.arena.Database.CreateMatch(&model.Match{Type: model.Qualification, ShortName: "Q29", Status: game.RedWonMatch})
+	web.arena.Database.CreateMatch(&model.Match{Type: model.Qualification, ShortName: "Q30"})
 	web.arena.Database.CreateTeam(&model.Team{Id: 254, Nickname: "ChezyPof"})
 	web.arena.Database.CreateTeam(&model.Team{Id: 1114, Nickname: "Simbots"})
 
@@ -79,7 +114,7 @@ func TestRankingsApi(t *testing.T) {
 		assert.Equal(t, ranking1, rankingsData.Rankings[1])
 		assert.Equal(t, ranking2, rankingsData.Rankings[0])
 	}
-	assert.Equal(t, "29", rankingsData.HighestPlayedMatch)
+	assert.Equal(t, "Q29", rankingsData.HighestPlayedMatch)
 }
 
 func TestSponsorSlidesApi(t *testing.T) {
@@ -147,12 +182,27 @@ func TestArenaWebsocketApi(t *testing.T) {
 
 func TestBracketSvgApiDoubleElimination(t *testing.T) {
 	web := setupTestWeb(t)
-	web.arena.EventSettings.ElimType = "double"
+	web.arena.EventSettings.PlayoffType = model.DoubleEliminationPlayoff
 	tournament.CreateTestAlliances(web.arena.Database, 8)
-	web.arena.CreatePlayoffBracket()
+	web.arena.CreatePlayoffTournament()
 
 	recorder := web.getHttpResponse("/api/bracket/svg")
 	assert.Equal(t, 200, recorder.Code)
 	assert.Equal(t, "image/svg+xml", recorder.Header()["Content-Type"][0])
 	assert.Contains(t, recorder.Body.String(), "Best-of-3")
+}
+
+func TestBracketSvgApiFourAllianceDoubleElimination(t *testing.T) {
+	web := setupTestWeb(t)
+	web.arena.EventSettings.PlayoffType = model.DoubleEliminationPlayoff
+	web.arena.EventSettings.NumPlayoffAlliances = 4
+	tournament.CreateTestAlliances(web.arena.Database, 4)
+	web.arena.CreatePlayoffTournament()
+
+	recorder := web.getHttpResponse("/api/bracket/svg")
+	assert.Equal(t, 200, recorder.Code)
+	assert.Equal(t, "image/svg+xml", recorder.Header()["Content-Type"][0])
+	assert.Contains(t, recorder.Body.String(), "bracket_double4")
+	assert.Contains(t, recorder.Body.String(), "match_M5")
+	assert.Contains(t, recorder.Body.String(), "Finals")
 }

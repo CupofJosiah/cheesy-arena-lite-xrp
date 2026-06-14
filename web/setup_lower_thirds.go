@@ -21,7 +21,9 @@ func (web *Web) lowerThirdsGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template, err := web.parseFiles("templates/setup_lower_thirds.html", "templates/base.html")
+	template, err := web.parseFiles(
+		"templates/setup_lower_thirds.html", "templates/audience_display_radio_buttons.html", "templates/base.html",
+	)
 	if err != nil {
 		handleWebErr(w, err)
 		return
@@ -53,7 +55,12 @@ func (web *Web) lowerThirdsWebsocketHandler(w http.ResponseWriter, r *http.Reque
 		handleWebErr(w, err)
 		return
 	}
-	defer ws.Close()
+	defer closeWebsocket(ws)
+
+	// Subscribe the websocket to the notifiers whose messages will be passed on to the client, in a separate goroutine.
+	go ws.HandleNotifiers(
+		web.arena.AudienceDisplayModeNotifier,
+	)
 
 	// Loop, waiting for commands and responding to them, until the client closes the connection.
 	for {
@@ -72,7 +79,7 @@ func (web *Web) lowerThirdsWebsocketHandler(w http.ResponseWriter, r *http.Reque
 			var lowerThird model.LowerThird
 			err = mapstructure.Decode(data, &lowerThird)
 			if err != nil {
-				ws.WriteError(err.Error())
+				writeWebsocketError(ws, err.Error())
 				continue
 			}
 			web.saveLowerThird(&lowerThird)
@@ -80,19 +87,19 @@ func (web *Web) lowerThirdsWebsocketHandler(w http.ResponseWriter, r *http.Reque
 			var lowerThird model.LowerThird
 			err = mapstructure.Decode(data, &lowerThird)
 			if err != nil {
-				ws.WriteError(err.Error())
+				writeWebsocketError(ws, err.Error())
 				continue
 			}
 			err = web.arena.Database.DeleteLowerThird(lowerThird.Id)
 			if err != nil {
-				ws.WriteError(err.Error())
+				writeWebsocketError(ws, err.Error())
 				continue
 			}
 		case "showLowerThird":
 			var lowerThird model.LowerThird
 			err = mapstructure.Decode(data, &lowerThird)
 			if err != nil {
-				ws.WriteError(err.Error())
+				writeWebsocketError(ws, err.Error())
 				continue
 			}
 			web.saveLowerThird(&lowerThird)
@@ -104,7 +111,7 @@ func (web *Web) lowerThirdsWebsocketHandler(w http.ResponseWriter, r *http.Reque
 			var lowerThird model.LowerThird
 			err = mapstructure.Decode(data, &lowerThird)
 			if err != nil {
-				ws.WriteError(err.Error())
+				writeWebsocketError(ws, err.Error())
 				continue
 			}
 			web.saveLowerThird(&lowerThird)
@@ -118,16 +125,24 @@ func (web *Web) lowerThirdsWebsocketHandler(w http.ResponseWriter, r *http.Reque
 			}{}
 			err = mapstructure.Decode(data, &args)
 			if err != nil {
-				ws.WriteError(err.Error())
+				writeWebsocketError(ws, err.Error())
 				continue
 			}
 			err = web.reorderLowerThird(args.Id, args.MoveUp)
 			if err != nil {
-				ws.WriteError(err.Error())
+				writeWebsocketError(ws, err.Error())
 				continue
 			}
+		case "setAudienceDisplay":
+			mode, ok := data.(string)
+			if !ok {
+				writeWebsocketError(ws, fmt.Sprintf("Failed to parse '%s' message.", messageType))
+				continue
+			}
+			web.arena.SetAudienceDisplayMode(mode)
+			continue
 		default:
-			ws.WriteError(fmt.Sprintf("Invalid message type '%s'.", messageType))
+			writeWebsocketError(ws, fmt.Sprintf("Invalid message type '%s'.", messageType))
 			continue
 		}
 
@@ -151,7 +166,9 @@ func (web *Web) saveLowerThird(lowerThird *model.LowerThird) error {
 		lowerThird.DisplayOrder = web.arena.Database.GetNextLowerThirdDisplayOrder()
 		err = web.arena.Database.CreateLowerThird(lowerThird)
 	} else {
-		err = web.arena.Database.UpdateLowerThird(lowerThird)
+		oldLowerThird.TopText = lowerThird.TopText
+		oldLowerThird.BottomText = lowerThird.BottomText
+		err = web.arena.Database.UpdateLowerThird(oldLowerThird)
 	}
 	if err != nil {
 		return err

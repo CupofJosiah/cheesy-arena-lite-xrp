@@ -1,55 +1,130 @@
 {{/*
-  Copyright 2014 Team 254. All Rights Reserved.
-  Author: pat@patfairbank.com (Patrick Fairbank)
+Copyright 2014 Team 254. All Rights Reserved.
+Author: pat@patfairbank.com (Patrick Fairbank)
 
-  UI for manually editing the result for a match.
+UI for manually editing the result for a match.
 */}}
 {{define "title"}}Edit Match Results{{end}}
 {{define "body"}}
 <div class="row">
-  <div class="well">
-    <form class="form-horizontal" method="POST">
+  <div class="card card-body bg-body-tertiary">
+    <form method="POST">
       <fieldset>
-        <legend>Edit Match {{.Match.DisplayName}} Results</legend>
-        <div class="col-lg-6" id="redScore"></div>
-        <div class="col-lg-6" id="blueScore"></div>
-        <div class="row form-group">
+        <legend>Edit {{.Match.LongName}} Results</legend>
+        {{range $alliance := .Alliances}}
+        {{template "allianceScore" $alliance}}
+        {{end}}
+        <div class="row">
           <div class="text-center col-lg-12">
-            <a href="/match_review"><button type="button" class="btn btn-default">Cancel</button></a>
-            <button type="submit" class="btn btn-info">Save</button>
+            <a href="{{if .IsCurrentMatch}}/match_play{{else}}/match_review{{end}}">
+              <button type="button" class="btn btn-secondary">Cancel</button>
+            </a>
+            <button type="submit" class="btn btn-primary">Save</button>
           </div>
         </div>
       </fieldset>
     </form>
   </div>
 </div>
-<div id="scoreTemplate" style="display: none;">
-  <div class="well well-{{"{{alliance}}"}}">
-    <div class="form-group">
-      <label>Autonomous</label>
-      <input name="{{"{{alliance}}"}}AutoPoints" class="form-control"/>
-    </div>
-    <div class="form-group">
-      <label>Teleoperated</label>
-      <input name="{{"{{alliance}}"}}TeleopPoints" class="form-control"/>
-    </div>
-    <div class="form-group">
-      <label>Endgame</label>
-      <input name="{{"{{alliance}}"}}EndgamePoints" class="form-control"/>
-    </div>
-  </div>
-</div>
 {{end}}
 {{define "script"}}
 <script src="/static/js/match_review.js"></script>
 <script>
+  <!-- @formatter:off -->
   var matchId = {{.Match.Id}};
   matchResult = jQuery.parseJSON('{{.MatchResultJson}}');
-  allianceResults["red"] = {alliance: "red", team1: {{.Match.Red1}}, team2: {{.Match.Red2}},
-      team3: {{.Match.Red3}}, score: matchResult.RedScore};
-  allianceResults["blue"] = {alliance: "blue", team1: {{.Match.Blue1}}, team2: {{.Match.Blue2}},
-      team3: {{.Match.Blue3}}, score: matchResult.BlueScore};
+  allianceResults["red"] = {
+    alliance: "red",
+    teams: [{{.Match.Red1}}, {{.Match.Red2}}, {{.Match.Red3}}],
+    score: matchResult.RedScore,
+    cards: matchResult.RedCards,
+  };
+  allianceResults["blue"] = {
+    alliance: "blue",
+    teams: [{{.Match.Blue1}}, {{.Match.Blue2}}, {{.Match.Blue3}}],
+    score: matchResult.BlueScore,
+    cards: matchResult.BlueCards,
+  };
   renderResults("red");
   renderResults("blue");
+  refreshScoreSummaries();
+  <!-- @formatter:on -->
 </script>
+{{end}}
+{{define "allianceScore"}}
+<div id="{{.Alliance}}Score" data-alliance="{{.Alliance}}">
+  <div class="card card-body bg-{{.Alliance}} mb-3">
+    <fieldset>
+      <legend>Score</legend>
+      {{template "scoreInput" dict "alliance" .Alliance "field" "AutoPoints" "label" "Auto"}}
+      {{template "scoreInput" dict "alliance" .Alliance "field" "TeleopPoints" "label" "Teleop"}}
+      {{template "scoreInput" dict "alliance" .Alliance "field" "PostMatchPoints" "label" "Endgame"}}
+      {{template "scoreInput" dict "alliance" .Alliance "field" "FoulPointsAgainst" "label" "Foul Points Against"}}
+    </fieldset>
+    <fieldset>
+      <legend>Cards</legend>
+      {{range $team := .Teams}}
+      <div class="row mb-3">
+        <label class="col-lg-2 control-label">Team {{$team}}</label>
+        <div class="col-lg-8">
+          <div class="row">
+            {{template "cardRadio" dict "alliance" $.Alliance "team" $team "value" "" "label" "None" "checked" true}}
+            {{template "cardRadio" dict "alliance" $.Alliance "team" $team "value" "yellow" "label" "Yellow"}}
+            {{template "cardRadio" dict "alliance" $.Alliance "team" $team "value" "red" "label" "Red"}}
+            {{template "cardRadio" dict "alliance" $.Alliance "team" $team "value" "dq" "label" "DQ"}}
+          </div>
+        </div>
+      </div>
+      {{end}}
+    </fieldset>
+  </div>
+  {{template "scoreSummaryCard" .}}
+</div>
+{{end}}
+{{define "scoreInput"}}
+<div class="row mb-3">
+  <label class="col-lg-2 control-label">{{.label}}</label>
+  <div class="col-lg-3">
+    <input type="number" class="form-control input-sm" name="{{.alliance}}{{.field}}" min="0" step="1">
+  </div>
+</div>
+{{end}}
+{{define "cardRadio"}}
+<div class="col-lg-2">
+  <label>
+    <input type="radio" name="{{.alliance}}Team{{.team}}Card" value="{{.value}}"{{if .checked}} checked{{end}}>
+    {{.label}}
+  </label>
+</div>
+{{end}}
+{{define "scoreSummaryCard"}}
+<div class="card card-body bg-{{.Alliance}} mb-3" id="{{.Alliance}}Summary">
+  <h5 class="card-title">Score Summary</h5>
+  <table class="table table-sm mb-0 score-summary-table score-summary-table-{{.Alliance}}">
+    <tbody>
+      <tr>
+        {{template "summaryField" dict "label" "Auto" "field" "AutoPoints" "value" .Summary.AutoPoints}}
+        {{template "summaryField" dict "label" "Teleop" "field" "TeleopPoints" "value" .Summary.TeleopPoints}}
+      </tr>
+      <tr>
+        {{template "summaryField" dict "label" "Endgame" "field" "PostMatchPoints" "value" .Summary.PostMatchPoints}}
+        {{template "summaryField" dict "label" "Match" "field" "MatchPoints" "value" .Summary.MatchPoints}}
+      </tr>
+      <tr>
+        {{template "summaryField" dict "label" "Foul" "field" "FoulPoints" "value" .Summary.FoulPoints}}
+        {{template "summaryField" dict "label" "Final Score" "field" "Score" "value" .Summary.Score}}
+      </tr>
+      {{if .ShowRankingPoints}}
+      <tr>
+        {{template "summaryField" dict "label" "Ranking Points" "field" "WinRankingPoints" "value" .Summary.WinRankingPoints}}
+        <th scope="row"></th><td></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{define "summaryField"}}
+<th scope="row">{{.label}}</th>
+<td class="text-end font-monospace" data-summary-field="{{.field}}">{{.value}}</td>
 {{end}}

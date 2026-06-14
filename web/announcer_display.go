@@ -33,6 +33,36 @@ func (web *Web) announcerDisplayHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// Renders a partial template for when a new match is loaded.
+func (web *Web) announcerDisplayMatchLoadHandler(w http.ResponseWriter, r *http.Request) {
+	template, err := web.parseFiles("templates/announcer_display_match_load.html")
+	if err != nil {
+		handleWebErr(w, err)
+		return
+	}
+
+	err = template.ExecuteTemplate(w, "announcer_display_match_load", web.arena.GenerateMatchLoadMessage())
+	if err != nil {
+		handleWebErr(w, err)
+		return
+	}
+}
+
+// Renders a partial template for when a final score is posted.
+func (web *Web) announcerDisplayScorePostedHandler(w http.ResponseWriter, r *http.Request) {
+	template, err := web.parseFiles("templates/announcer_display_score_posted.html")
+	if err != nil {
+		handleWebErr(w, err)
+		return
+	}
+
+	err = template.ExecuteTemplate(w, "announcer_display_score_posted", web.arena.GenerateScorePostedMessage())
+	if err != nil {
+		handleWebErr(w, err)
+		return
+	}
+}
+
 // The websocket endpoint for the announcer display client to send control commands and receive status updates.
 func (web *Web) announcerDisplayWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	display, err := web.registerDisplay(r)
@@ -47,10 +77,18 @@ func (web *Web) announcerDisplayWebsocketHandler(w http.ResponseWriter, r *http.
 		handleWebErr(w, err)
 		return
 	}
-	defer ws.Close()
+	defer closeWebsocket(ws)
 
 	// Subscribe the websocket to the notifiers whose messages will be passed on to the client.
-	ws.HandleNotifiers(display.Notifier, web.arena.MatchTimingNotifier, web.arena.MatchLoadNotifier,
-		web.arena.MatchTimeNotifier, web.arena.RealtimeScoreNotifier, web.arena.ScorePostedNotifier,
-		web.arena.AudienceDisplayModeNotifier, web.arena.ReloadDisplaysNotifier)
+	ws.HandleNotifiers(
+		display.Notifier,
+		web.arena.MatchTimingNotifier,
+		web.arena.AudienceDisplayModeNotifier,
+		web.arena.EventStatusNotifier,
+		web.arena.MatchLoadNotifier,
+		web.arena.MatchTimeNotifier,
+		web.arena.RealtimeScoreNotifier,
+		web.arena.ScorePostedNotifier,
+		web.arena.ReloadDisplaysNotifier,
+	)
 }

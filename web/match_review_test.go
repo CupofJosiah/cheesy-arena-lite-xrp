@@ -4,157 +4,123 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/Team254/cheesy-arena-lite/tournament"
 	"github.com/stretchr/testify/assert"
+	"net/url"
 	"testing"
 )
 
 func TestMatchReview(t *testing.T) {
 	web := setupTestWeb(t)
 
-	match1 := model.Match{Type: "practice", DisplayName: "1", Status: game.RedWonMatch}
-	match2 := model.Match{Type: "practice", DisplayName: "2"}
-	match3 := model.Match{Type: "qualification", DisplayName: "1", Status: game.BlueWonMatch}
-	match4 := model.Match{Type: "elimination", DisplayName: "SF1-1", Status: game.TieMatch}
-	match5 := model.Match{Type: "elimination", DisplayName: "SF1-2"}
+	match1 := model.Match{Type: model.Practice, ShortName: "P1", Status: game.RedWonMatch}
+	match2 := model.Match{Type: model.Qualification, ShortName: "Q1", Status: game.BlueWonMatch}
+	match3 := model.Match{Type: model.Playoff, ShortName: "SF1-1", Status: game.TieMatch}
 	web.arena.Database.CreateMatch(&match1)
 	web.arena.Database.CreateMatch(&match2)
 	web.arena.Database.CreateMatch(&match3)
-	web.arena.Database.CreateMatch(&match4)
-	web.arena.Database.CreateMatch(&match5)
 
-	// Check that all matches are listed on the page.
 	recorder := web.getHttpResponse("/match_review")
 	assert.Equal(t, 200, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), ">P1<")
-	assert.Contains(t, recorder.Body.String(), ">P2<")
 	assert.Contains(t, recorder.Body.String(), ">Q1<")
 	assert.Contains(t, recorder.Body.String(), ">SF1-1<")
-	assert.Contains(t, recorder.Body.String(), ">SF1-2<")
+	assert.Contains(t, recorder.Body.String(), "match-review-rps")
 }
 
 func TestMatchReviewEditExistingResult(t *testing.T) {
 	web := setupTestWeb(t)
 
-	match := model.Match{Type: "elimination", DisplayName: "QF4-3", Status: game.RedWonMatch, Red1: 1001,
-		Red2: 1002, Red3: 1003, Blue1: 1004, Blue2: 1005, Blue3: 1006, ElimRedAlliance: 1, ElimBlueAlliance: 2}
-	assert.Nil(t, web.arena.Database.CreateMatch(&match))
-	matchResult := model.BuildTestMatchResult(match.Id, 1)
-	matchResult.MatchType = match.Type
-	assert.Nil(t, web.arena.Database.CreateMatchResult(matchResult))
-	tournament.CreateTestAlliances(web.arena.Database, 2)
-	web.arena.EventSettings.NumElimAlliances = 2
-	web.arena.CreatePlayoffBracket()
-
-	recorder := web.getHttpResponse("/match_review")
-	assert.Equal(t, 200, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), ">QF4-3<")
-	assert.Contains(t, recorder.Body.String(), ">155<") // The red score
-	assert.Contains(t, recorder.Body.String(), ">80<")  // The blue score
-
-	// Check response for non-existent match.
-	recorder = web.getHttpResponse(fmt.Sprintf("/match_review/%d/edit", 12345))
-	assert.Equal(t, 500, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "No such match")
-
-	recorder = web.getHttpResponse(fmt.Sprintf("/match_review/%d/edit", match.Id))
-	assert.Equal(t, 200, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), " QF4-3 ")
-
-	// Update the score to something else.
-	postBody := fmt.Sprintf(
-		"matchResultJson={\"MatchId\":%d,\"RedScore\":{\"AutoPoints\":45,\"TeleopPoints\":80,\"EndgamePoints\":10},"+
-			"\"BlueScore\":{\"AutoPoints\":15,\"TeleopPoints\":60,\"EndgamePoints\":50}}",
-		match.Id,
-	)
-	recorder = web.postHttpResponse(fmt.Sprintf("/match_review/%d/edit", match.Id), postBody)
-	assert.Equal(t, 303, recorder.Code, recorder.Body.String())
-
-	// Check for the updated scores back on the match list page.
-	recorder = web.getHttpResponse("/match_review")
-	assert.Equal(t, 200, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), ">QF4-3<")
-	assert.Contains(t, recorder.Body.String(), ">135<") // The red score
-	assert.Contains(t, recorder.Body.String(), ">125<") // The blue score
-}
-
-func TestMatchReviewCreateNewResult(t *testing.T) {
-	web := setupTestWeb(t)
-
-	match := model.Match{Type: "elimination", DisplayName: "QF4-3", Status: game.RedWonMatch, Red1: 1001,
-		Red2: 1002, Red3: 1003, Blue1: 1004, Blue2: 1005, Blue3: 1006, ElimRedAlliance: 1, ElimBlueAlliance: 2}
+	match := model.Match{Type: model.Practice, LongName: "Practice 1", ShortName: "P1"}
 	web.arena.Database.CreateMatch(&match)
-	tournament.CreateTestAlliances(web.arena.Database, 2)
-	web.arena.EventSettings.NumElimAlliances = 2
-	web.arena.CreatePlayoffBracket()
+	matchResult := model.NewMatchResult()
+	matchResult.MatchId = match.Id
+	matchResult.RedScore = &game.Score{AutoPoints: 3, TeleopPoints: 7, PostMatchPoints: 2}
+	matchResult.BlueScore = &game.Score{AutoPoints: 4, TeleopPoints: 5, FoulPointsAgainst: 1}
+	assert.Nil(t, web.arena.Database.CreateMatchResult(matchResult))
 
-	recorder := web.getHttpResponse("/match_review")
+	recorder := web.getHttpResponse(fmt.Sprintf("/match_review/%d/edit", match.Id))
 	assert.Equal(t, 200, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), ">QF4-3<")
-	assert.NotContains(t, recorder.Body.String(), ">71<") // The red score
-	assert.NotContains(t, recorder.Body.String(), ">72<") // The blue score
+	assert.Contains(t, recorder.Body.String(), " Practice 1 ")
+	assert.Contains(t, recorder.Body.String(), "Auto")
+	assert.Contains(t, recorder.Body.String(), "Teleop")
+	assert.Contains(t, recorder.Body.String(), "Endgame")
+	assert.Contains(t, recorder.Body.String(), "Foul Points Against")
+	assert.NotContains(t, recorder.Body.String(), "Tower")
 
-	recorder = web.getHttpResponse(fmt.Sprintf("/match_review/%d/edit", match.Id))
-	assert.Equal(t, 200, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), " QF4-3 ")
-
-	// Update the score to something else.
 	postBody := fmt.Sprintf(
-		"matchResultJson={\"MatchId\":%d,\"RedScore\":{\"AutoPoints\":10,\"TeleopPoints\":20,\"EndgamePoints\":30},"+
-			"\"BlueScore\":{\"AutoPoints\":40,\"TeleopPoints\":50,\"EndgamePoints\":60}}",
-		match.Id,
+		"matchResultJson=%s",
+		url.QueryEscape(fmt.Sprintf(
+			`{"MatchId":%d,"RedScore":{"AutoPoints":1,"TeleopPoints":2,"PostMatchPoints":3},`+
+				`"BlueScore":{"AutoPoints":4,"TeleopPoints":5,"PostMatchPoints":6,"FoulPointsAgainst":7},`+
+				`"RedCards":{"105":"yellow"},"BlueCards":{}}`,
+			match.Id,
+		)),
 	)
 	recorder = web.postHttpResponse(fmt.Sprintf("/match_review/%d/edit", match.Id), postBody)
 	assert.Equal(t, 303, recorder.Code, recorder.Body.String())
 
-	// Check for the updated scores back on the match list page.
-	recorder = web.getHttpResponse("/match_review")
-	assert.Equal(t, 200, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), ">QF4-3<")
-	assert.Contains(t, recorder.Body.String(), ">60<")  // The red score
-	assert.Contains(t, recorder.Body.String(), ">150<") // The blue score
+	updatedResult, err := web.arena.Database.GetMatchResultForMatch(match.Id)
+	assert.Nil(t, err)
+	assert.Equal(t, 6, updatedResult.RedScoreSummary().MatchPoints)
+	assert.Equal(t, 15, updatedResult.BlueScoreSummary().Score)
+	assert.Equal(t, "yellow", updatedResult.RedCards["105"])
 }
 
 func TestMatchReviewEditCurrentMatch(t *testing.T) {
 	web := setupTestWeb(t)
 
-	match := model.Match{
-		Type:        "qualification",
-		DisplayName: "352",
-		Red1:        1001,
-		Red2:        1002,
-		Red3:        1003,
-		Blue1:       1004,
-		Blue2:       1005,
-		Blue3:       1006,
-	}
+	match := model.Match{Type: model.Qualification, LongName: "Qualification 352", ShortName: "Q352"}
 	web.arena.Database.CreateMatch(&match)
 	web.arena.LoadMatch(&match)
-	assert.Equal(t, match, *web.arena.CurrentMatch)
-
-	recorder := web.getHttpResponse("/match_review/current/edit")
-	assert.Equal(t, 200, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), " 352 ")
 
 	postBody := fmt.Sprintf(
-		"matchResultJson={\"MatchId\":%d,\"RedScore\":{\"AutoPoints\":10,\"TeleopPoints\":20,\"EndgamePoints\":30},"+
-			"\"BlueScore\":{\"AutoPoints\":40,\"TeleopPoints\":50,\"EndgamePoints\":60}}",
-		match.Id,
+		"matchResultJson=%s",
+		url.QueryEscape(fmt.Sprintf(
+			`{"MatchId":%d,"RedScore":{"AutoPoints":1,"TeleopPoints":2,"PostMatchPoints":3},`+
+				`"BlueScore":{"AutoPoints":4,"TeleopPoints":5,"FoulPointsAgainst":6},`+
+				`"RedCards":{"105":"yellow"},"BlueCards":{}}`,
+			match.Id,
+		)),
 	)
-	recorder = web.postHttpResponse("/match_review/current/edit", postBody)
+	recorder := web.postHttpResponse("/match_review/current/edit", postBody)
 	assert.Equal(t, 303, recorder.Code, recorder.Body.String())
 	assert.Equal(t, "/match_play", recorder.Header().Get("Location"))
 
-	// Check that the persisted match is still unedited and that the realtime scores have been updated instead.
 	match2, _ := web.arena.Database.GetMatchById(match.Id)
-	assert.Equal(t, game.MatchNotPlayed, match2.Status)
-	assert.Equal(t, 10, web.arena.RedScore.AutoPoints)
-	assert.Equal(t, 20, web.arena.RedScore.TeleopPoints)
-	assert.Equal(t, 30, web.arena.RedScore.EndgamePoints)
-	assert.Equal(t, 40, web.arena.BlueScore.AutoPoints)
-	assert.Equal(t, 50, web.arena.BlueScore.TeleopPoints)
-	assert.Equal(t, 60, web.arena.BlueScore.EndgamePoints)
+	assert.Equal(t, game.MatchScheduled, match2.Status)
+	assert.Equal(t, game.Score{AutoPoints: 1, TeleopPoints: 2, PostMatchPoints: 3}, web.arena.RedRealtimeScore.CurrentScore)
+	assert.Equal(t, game.Score{AutoPoints: 4, TeleopPoints: 5, FoulPointsAgainst: 6}, web.arena.BlueRealtimeScore.CurrentScore)
+	assert.Equal(t, "yellow", web.arena.RedRealtimeScore.Cards["105"])
+}
+
+func TestMatchReviewSummary(t *testing.T) {
+	web := setupTestWeb(t)
+
+	match := model.Match{Type: model.Qualification, LongName: "Qualification 1", ShortName: "Q1"}
+	web.arena.Database.CreateMatch(&match)
+
+	postBody := fmt.Sprintf(
+		`{"MatchId":%d,"RedScore":{"AutoPoints":1,"TeleopPoints":2,"PostMatchPoints":3},`+
+			`"BlueScore":{"AutoPoints":4,"TeleopPoints":5,"PostMatchPoints":6,"FoulPointsAgainst":7},`+
+			`"RedCards":{},"BlueCards":{}}`,
+		match.Id,
+	)
+	recorder := web.postHttpResponse(fmt.Sprintf("/match_review/%d/summary", match.Id), postBody)
+	assert.Equal(t, 200, recorder.Code, recorder.Body.String())
+	assert.Equal(t, "application/json", recorder.Header()["Content-Type"][0])
+
+	var response MatchReviewSummaryResponse
+	assert.Nil(t, json.Unmarshal(recorder.Body.Bytes(), &response))
+	assert.Equal(t, 6, response.RedSummary.MatchPoints)
+	assert.Equal(t, 13, response.RedSummary.Score)
+	assert.Equal(t, 15, response.BlueSummary.MatchPoints)
+	assert.Equal(t, 15, response.BlueSummary.Score)
+
+	matchResult, err := web.arena.Database.GetMatchResultForMatch(match.Id)
+	assert.Nil(t, err)
+	assert.Nil(t, matchResult)
 }

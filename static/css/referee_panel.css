@@ -1,0 +1,247 @@
+/*
+  Copyright 2023 Team 254. All Rights Reserved.
+  Author: pat@patfairbank.com (Patrick Fairbank)
+*/
+
+:root {
+  --bg: #202124;
+  --panel: #2b2d31;
+  --text: #fff;
+  --muted: #cbd0d6;
+  --red: #933;
+  --blue: #2364c8;
+  --green: #159447;
+  --purple: #8b32c9;
+}
+
+html {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  overscroll-behavior: none;
+}
+
+body {
+  background-color: var(--bg);
+  overscroll-behavior: none;
+}
+
+h3 {
+  margin: 0 0 1vw 0;
+  color: var(--muted);
+  font-size: 1.5vw;
+}
+
+.container {
+  padding-top: 1vw;
+  width: 100%;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--text);
+}
+
+#matchName {
+  font-size: 2vw;
+}
+
+#refereePanel {
+  width: 98%;
+  display: grid;
+  grid-template-columns: 0.8fr 1fr 0.7fr;
+  gap: 1vw;
+}
+
+#refereePanel section {
+  padding: 1vw;
+  background: var(--panel);
+  border-radius: 0.5vw;
+}
+
+#cards {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.alliance-cards {
+  width: 100%;
+  padding: 0.5vw 1vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid #666;
+  border-radius: 0.5vw;
+}
+
+#redCards {
+  margin-bottom: 1vw;
+  background-color: #322;
+}
+
+#blueCards {
+  background-color: #223;
+}
+
+.team-card {
+  margin: 0.5vw 0;
+  width: 10vw;
+  height: 3.5vw;
+  font-size: 2.5vw;
+  background-color: #444;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 0.25vw;
+}
+
+.team-card[data-card="yellow"] {
+  color: #111;
+  background-color: #ffc400;
+}
+
+.team-card[data-card="red"] {
+  background-color: #b00020;
+}
+
+.team-card[data-old-yellow-card="true"] {
+  border: 0.3vw solid #ff0;
+}
+
+#foulPoints {
+  display: flex;
+  flex-direction: column;
+  gap: 1vw;
+}
+
+#foulPoints label {
+  display: grid;
+  grid-template-columns: 8vw minmax(0, 1fr);
+  align-items: center;
+  gap: 1vw;
+  font-size: 2vw;
+  font-weight: bold;
+}
+
+#foulPoints label.red span {
+  color: #ffb3b3;
+}
+
+#foulPoints label.blue span {
+  color: #b8d4ff;
+}
+
+#foulPoints input {
+  width: 100%;
+  height: 4.5vw;
+  border: none;
+  border-radius: 0.35vw;
+  padding: 0 1vw;
+  font-size: 2.4vw;
+  font-weight: bold;
+  text-align: right;
+}
+
+#foulPoints input:disabled {
+  opacity: 0.5;
+}
+
+.scoring-status {
+  margin-top: 0.5vw;
+  padding: 0.7vw 1vw;
+  border-radius: 0.35vw;
+  background-color: #e66;
+  font-size: 1.2vw;
+  color: #000;
+  font-weight: bold;
+}
+
+.scoring-status[data-ready=true] {
+  background-color: #0c6;
+}
+
+.scoring-status[data-present=false] {
+  background-color: #666;
+  color: #fff;
+}
+
+#controlButtons {
+  width: 100%;
+  margin: 1vw 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.control-button {
+  width: 20vw;
+  height: 4vw;
+  font-size: 2.2vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 1vw;
+  border-radius: 0.25vw;
+  opacity: 0.3;
+}
+
+.control-button[data-enabled=true] {
+  opacity: 1;
+}
+
+#volunteerButton {
+  background-color: var(--purple);
+}
+
+#resetButton {
+  background-color: var(--green);
+}
+
+#commitButton {
+  background-color: var(--blue);
+}
+
+@media (max-width: 800px) {
+  h3 {
+    font-size: 5vw;
+  }
+
+  #matchName {
+    font-size: 6vw;
+  }
+
+  #refereePanel {
+    grid-template-columns: 1fr;
+  }
+
+  .team-card {
+    width: 42vw;
+    height: 12vw;
+    font-size: 8vw;
+  }
+
+  #foulPoints label {
+    grid-template-columns: 24vw minmax(0, 1fr);
+    font-size: 6vw;
+  }
+
+  #foulPoints input {
+    height: 14vw;
+    font-size: 8vw;
+  }
+
+  .scoring-status {
+    font-size: 4vw;
+  }
+
+  #controlButtons {
+    flex-wrap: wrap;
+    gap: 2vw;
+  }
+
+  .control-button {
+    width: 44vw;
+    height: 13vw;
+    font-size: 6vw;
+  }
+}

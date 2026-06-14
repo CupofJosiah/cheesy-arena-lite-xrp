@@ -40,26 +40,10 @@ func (web *Web) getHttpResponseWithHeaders(path string, headers map[string]strin
 	return recorder
 }
 
-func (web *Web) patchHttpResponse(path string, body string) *httptest.ResponseRecorder {
-	recorder := httptest.NewRecorder()
-	req, _ := http.NewRequest("PATCH", path, strings.NewReader(body))
-	req.Header.Set("Content-Type", "text/plain")
-	web.newHandler().ServeHTTP(recorder, req)
-	return recorder
-}
-
 func (web *Web) postHttpResponse(path string, body string) *httptest.ResponseRecorder {
 	recorder := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", path, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
-	web.newHandler().ServeHTTP(recorder, req)
-	return recorder
-}
-
-func (web *Web) putHttpResponse(path string, body string) *httptest.ResponseRecorder {
-	recorder := httptest.NewRecorder()
-	req, _ := http.NewRequest("PUT", path, strings.NewReader(body))
-	req.Header.Set("Content-Type", "text/plain")
 	web.newHandler().ServeHTTP(recorder, req)
 	return recorder
 }
@@ -80,7 +64,7 @@ func readWebsocketError(t *testing.T, ws *websocket.Websocket) string {
 }
 
 // Receives the next websocket message and asserts that it is of the given type.
-func readWebsocketType(t *testing.T, ws *websocket.Websocket, expectedMessageType string) interface{} {
+func readWebsocketType(t *testing.T, ws *websocket.Websocket, expectedMessageType string) any {
 	messageType, message, err := ws.ReadWithTimeout(time.Second)
 	if assert.Nil(t, err) {
 		assert.Equal(t, expectedMessageType, messageType)
@@ -88,8 +72,8 @@ func readWebsocketType(t *testing.T, ws *websocket.Websocket, expectedMessageTyp
 	return message
 }
 
-func readWebsocketMultiple(t *testing.T, ws *websocket.Websocket, count int) map[string]interface{} {
-	messages := make(map[string]interface{})
+func readWebsocketMultiple(t *testing.T, ws *websocket.Websocket, count int) map[string]any {
+	messages := make(map[string]any)
 	for i := 0; i < count; i++ {
 		messageType, message, err := ws.ReadWithTimeout(time.Second)
 		if assert.Nil(t, err) {
@@ -100,8 +84,7 @@ func readWebsocketMultiple(t *testing.T, ws *websocket.Websocket, count int) map
 }
 
 func setupTestWeb(t *testing.T) *Web {
-	game.MatchTiming.WarmupDurationSec = 3
 	game.MatchTiming.PauseDurationSec = 2
-	arena := field.SetupTestArena(t, "web")
+	arena := field.SetupTestArena(t)
 	return NewWeb(arena)
 }

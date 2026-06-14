@@ -7,9 +7,11 @@ package web
 
 import (
 	"fmt"
+	"github.com/Team254/cheesy-arena-lite/field"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -32,6 +34,15 @@ func (web *Web) settingsPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	activeSettingsTab := settingsTabFromRequest(r)
+	if !settingsSaveAllowed(web.arena.MatchState) {
+		web.renderSettingsWithStatus(
+			w, r, "Settings cannot be changed while a match is in progress or is uncommitted.", activeSettingsTab,
+			http.StatusOK,
+		)
+		return
+	}
+
 	eventSettings := web.arena.EventSettings
 
 	previousEventName := eventSettings.Name
@@ -41,51 +52,128 @@ func (web *Web) settingsPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	previousAdminPassword := eventSettings.AdminPassword
 
-	eventSettings.ElimType = r.PostFormValue("elimType")
+	var playoffType model.PlayoffType
 	numAlliances := 0
-	if eventSettings.ElimType == "double" {
-		numAlliances = 8
-	} else {
-		numAlliances, _ = strconv.Atoi(r.PostFormValue("numElimAlliances"))
+	playoffTypeValue := r.PostFormValue("playoffType")
+	playoffTypeProvided := playoffTypeValue != ""
+	if playoffTypeValue == "" && eventSettings.PlayoffType == model.SingleEliminationPlayoff {
+		playoffTypeValue = "SingleEliminationPlayoff"
+	}
+	if playoffTypeValue == "SingleEliminationPlayoff" || playoffTypeValue == "single" {
+		playoffType = model.SingleEliminationPlayoff
+		if r.PostFormValue("numPlayoffAlliances") == "" {
+			if playoffTypeProvided {
+				numAlliances = 0
+			} else {
+				numAlliances = eventSettings.NumPlayoffAlliances
+			}
+		} else {
+			numAlliances, _ = strconv.Atoi(r.PostFormValue("numPlayoffAlliances"))
+		}
 		if numAlliances < 2 || numAlliances > 16 {
-			web.renderSettings(w, r, "Number of alliances must be between 2 and 16.")
+			web.renderSettingsWithStatus(w, r, "Number of alliances must be between 2 and 16.", activeSettingsTab, http.StatusOK)
+			return
+		}
+	} else {
+		playoffType = model.DoubleEliminationPlayoff
+		if r.PostFormValue("numPlayoffAlliances") == "" {
+			if eventSettings.PlayoffType == model.DoubleEliminationPlayoff {
+				numAlliances = eventSettings.NumPlayoffAlliances
+			} else {
+				numAlliances = 8
+			}
+		} else {
+			numAlliances, _ = strconv.Atoi(r.PostFormValue("numPlayoffAlliances"))
+		}
+		if numAlliances != 4 && numAlliances != 8 {
+			web.renderSettingsWithStatus(
+				w, r, "Number of alliances for double elimination must be 4 or 8.", activeSettingsTab, http.StatusOK,
+			)
 			return
 		}
 	}
+	if eventSettings.PlayoffType != playoffType || eventSettings.NumPlayoffAlliances != numAlliances {
+		alliances, err := web.arena.Database.GetAllAlliances()
+		if err != nil {
+			handleWebErr(w, err)
+			return
+		}
+		if len(alliances) > 0 {
+			web.renderSettingsWithStatus(
+				w, r, "Cannot change playoff type or size after alliance selection has been finalized.", activeSettingsTab,
+				http.StatusOK,
+			)
+			return
+		}
+	}
+	eventSettings.PlayoffType = playoffType
 
-	eventSettings.NumElimAlliances = numAlliances
+	eventSettings.NumPlayoffAlliances = numAlliances
 	eventSettings.SelectionRound2Order = r.PostFormValue("selectionRound2Order")
 	eventSettings.SelectionRound3Order = r.PostFormValue("selectionRound3Order")
-	eventSettings.TBADownloadEnabled = r.PostFormValue("TBADownloadEnabled") == "on"
-	eventSettings.TbaPublishingEnabled = r.PostFormValue("tbaPublishingEnabled") == "on"
+	eventSettings.SelectionShowUnpickedTeams = r.PostFormValue("selectionShowUnpickedTeams") == "on"
+	eventSettings.TbaDownloadEnabled = r.PostFormValue("tbaDownloadEnabled") == "on"
+	eventSettings.TbaPublishingEnabled = false
 	eventSettings.TbaEventCode = r.PostFormValue("tbaEventCode")
-	eventSettings.TbaSecretId = r.PostFormValue("tbaSecretId")
-	eventSettings.TbaSecret = r.PostFormValue("tbaSecret")
+	eventSettings.TbaSecretId = ""
+	eventSettings.TbaSecret = ""
+	eventSettings.AutoAudienceDisplayEnabled = r.PostFormValue("autoAudienceDisplayEnabled") == "on"
+	eventSettings.NexusEnabled = r.PostFormValue("nexusEnabled") == "on"
 	eventSettings.NetworkSecurityEnabled = r.PostFormValue("networkSecurityEnabled") == "on"
 	eventSettings.ApAddress = r.PostFormValue("apAddress")
-	eventSettings.ApUsername = r.PostFormValue("apUsername")
 	eventSettings.ApPassword = r.PostFormValue("apPassword")
-	eventSettings.ApTeamChannel, _ = strconv.Atoi(r.PostFormValue("apTeamChannel"))
-	eventSettings.ApAdminChannel, _ = strconv.Atoi(r.PostFormValue("apAdminChannel"))
-	eventSettings.ApAdminWpaKey = r.PostFormValue("apAdminWpaKey")
-	eventSettings.Ap2Address = r.PostFormValue("ap2Address")
-	eventSettings.Ap2Username = r.PostFormValue("ap2Username")
-	eventSettings.Ap2Password = r.PostFormValue("ap2Password")
-	eventSettings.Ap2TeamChannel, _ = strconv.Atoi(r.PostFormValue("ap2TeamChannel"))
+	eventSettings.ApChannel, _ = strconv.Atoi(r.PostFormValue("apChannel"))
 	eventSettings.SwitchAddress = r.PostFormValue("switchAddress")
 	eventSettings.SwitchPassword = r.PostFormValue("switchPassword")
+	eventSettings.SCCManagementEnabled = r.PostFormValue("sccManagementEnabled") == "on"
+	eventSettings.RedSCCAddress = r.PostFormValue("redSCCAddress")
+	eventSettings.BlueSCCAddress = r.PostFormValue("blueSCCAddress")
+	eventSettings.SCCUsername = r.PostFormValue("sccUsername")
+	eventSettings.SCCPassword = r.PostFormValue("sccPassword")
+	eventSettings.SCCUpCommands = r.PostFormValue("sccUpCommands")
+	eventSettings.SCCDownCommands = r.PostFormValue("sccDownCommands")
 	eventSettings.PlcAddress = r.PostFormValue("plcAddress")
 	eventSettings.AdminPassword = r.PostFormValue("adminPassword")
-	eventSettings.WarmupDurationSec, _ = strconv.Atoi(r.PostFormValue("warmupDurationSec"))
+	eventSettings.TeamSignRed1Id, _ = strconv.Atoi(r.PostFormValue("teamSignRed1Id"))
+	eventSettings.TeamSignRed2Id, _ = strconv.Atoi(r.PostFormValue("teamSignRed2Id"))
+	eventSettings.TeamSignRed3Id, _ = strconv.Atoi(r.PostFormValue("teamSignRed3Id"))
+	eventSettings.TeamSignRedTimerId, _ = strconv.Atoi(r.PostFormValue("teamSignRedTimerId"))
+	eventSettings.TeamSignBlue1Id, _ = strconv.Atoi(r.PostFormValue("teamSignBlue1Id"))
+	eventSettings.TeamSignBlue2Id, _ = strconv.Atoi(r.PostFormValue("teamSignBlue2Id"))
+	eventSettings.TeamSignBlue3Id, _ = strconv.Atoi(r.PostFormValue("teamSignBlue3Id"))
+	eventSettings.TeamSignBlueTimerId, _ = strconv.Atoi(r.PostFormValue("teamSignBlueTimerId"))
+	eventSettings.UseLiteUdpPort = r.PostFormValue("useLiteUdpPort") == "on"
+	eventSettings.BlackmagicAddresses = r.PostFormValue("blackmagicAddresses")
+	eventSettings.CompanionAddress = r.PostFormValue("companionAddress")
+	eventSettings.CompanionPort, _ = strconv.Atoi(r.PostFormValue("companionPort"))
+	eventSettings.CompanionMatchPreviewPage, _ = strconv.Atoi(r.PostFormValue("companionMatchPreviewPage"))
+	eventSettings.CompanionMatchPreviewRow, _ = strconv.Atoi(r.PostFormValue("companionMatchPreviewRow"))
+	eventSettings.CompanionMatchPreviewColumn, _ = strconv.Atoi(r.PostFormValue("companionMatchPreviewColumn"))
+	eventSettings.CompanionSetAudiencePage, _ = strconv.Atoi(r.PostFormValue("companionSetAudiencePage"))
+	eventSettings.CompanionSetAudienceRow, _ = strconv.Atoi(r.PostFormValue("companionSetAudienceRow"))
+	eventSettings.CompanionSetAudienceColumn, _ = strconv.Atoi(r.PostFormValue("companionSetAudienceColumn"))
+	eventSettings.CompanionMatchStartPage, _ = strconv.Atoi(r.PostFormValue("companionMatchStartPage"))
+	eventSettings.CompanionMatchStartRow, _ = strconv.Atoi(r.PostFormValue("companionMatchStartRow"))
+	eventSettings.CompanionMatchStartColumn, _ = strconv.Atoi(r.PostFormValue("companionMatchStartColumn"))
+	eventSettings.CompanionTeleopStartPage, _ = strconv.Atoi(r.PostFormValue("companionTeleopStartPage"))
+	eventSettings.CompanionTeleopStartRow, _ = strconv.Atoi(r.PostFormValue("companionTeleopStartRow"))
+	eventSettings.CompanionTeleopStartColumn, _ = strconv.Atoi(r.PostFormValue("companionTeleopStartColumn"))
+	eventSettings.CompanionMatchEndPage, _ = strconv.Atoi(r.PostFormValue("companionMatchEndPage"))
+	eventSettings.CompanionMatchEndRow, _ = strconv.Atoi(r.PostFormValue("companionMatchEndRow"))
+	eventSettings.CompanionMatchEndColumn, _ = strconv.Atoi(r.PostFormValue("companionMatchEndColumn"))
+	eventSettings.CompanionPostResultPage, _ = strconv.Atoi(r.PostFormValue("companionPostResultPage"))
+	eventSettings.CompanionPostResultRow, _ = strconv.Atoi(r.PostFormValue("companionPostResultRow"))
+	eventSettings.CompanionPostResultColumn, _ = strconv.Atoi(r.PostFormValue("companionPostResultColumn"))
+	eventSettings.CompanionAllianceSelectionPage, _ = strconv.Atoi(r.PostFormValue("companionAllianceSelectionPage"))
+	eventSettings.CompanionAllianceSelectionRow, _ = strconv.Atoi(r.PostFormValue("companionAllianceSelectionRow"))
+	eventSettings.CompanionAllianceSelectionColumn, _ = strconv.Atoi(r.PostFormValue("companionAllianceSelectionColumn"))
+	eventSettings.CompanionMatchAbortPage, _ = strconv.Atoi(r.PostFormValue("companionMatchAbortPage"))
+	eventSettings.CompanionMatchAbortRow, _ = strconv.Atoi(r.PostFormValue("companionMatchAbortRow"))
+	eventSettings.CompanionMatchAbortColumn, _ = strconv.Atoi(r.PostFormValue("companionMatchAbortColumn"))
 	eventSettings.AutoDurationSec, _ = strconv.Atoi(r.PostFormValue("autoDurationSec"))
 	eventSettings.PauseDurationSec, _ = strconv.Atoi(r.PostFormValue("pauseDurationSec"))
 	eventSettings.TeleopDurationSec, _ = strconv.Atoi(r.PostFormValue("teleopDurationSec"))
-	eventSettings.WarningRemainingDurationSec, _ = strconv.Atoi(r.PostFormValue("warningRemainingDurationSec"))
-
-	if eventSettings.Ap2TeamChannel != 0 && eventSettings.Ap2TeamChannel == eventSettings.ApTeamChannel {
-		web.renderSettings(w, r, "Cannot use same channel for both access points.")
-		return
-	}
+	eventSettings.WarningSoundTimeSec, _ = strconv.Atoi(r.PostFormValue("warningSoundTimeSec"))
 
 	err := web.arena.Database.UpdateEventSettings(eventSettings)
 	if err != nil {
@@ -108,7 +196,20 @@ func (web *Web) settingsPostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	http.Redirect(w, r, "/setup/settings", 303)
+	http.Redirect(w, r, "/setup/settings#"+activeSettingsTab, 303)
+}
+
+func settingsSaveAllowed(matchState field.MatchState) bool {
+	return matchState == field.PreMatch || matchState == field.TimeoutActive || matchState == field.PostTimeout
+}
+
+func settingsTabFromRequest(r *http.Request) string {
+	switch r.PostFormValue("activeSettingsTab") {
+	case "event", "game", "field", "automation":
+		return r.PostFormValue("activeSettingsTab")
+	default:
+		return "event"
+	}
 }
 
 // Sends a copy of the event database file to the client as a download.
@@ -117,8 +218,9 @@ func (web *Web) saveDbHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filename := fmt.Sprintf("%s-%s.db", strings.Replace(web.arena.EventSettings.Name, " ", "_", -1),
-		time.Now().Format("20060102150405"))
+	filename := fmt.Sprintf(
+		"%s-%s.db", strings.Replace(web.arena.EventSettings.Name, " ", "_", -1), time.Now().Format("20060102150405"),
+	)
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 
 	if err := web.arena.Database.WriteBackup(w); err != nil {
@@ -145,22 +247,35 @@ func (web *Web) restoreDbHandler(w http.ResponseWriter, r *http.Request) {
 		handleWebErr(w, err)
 		return
 	}
-	defer tempFile.Close()
 	tempFilePath := tempFile.Name()
-	defer os.Remove(tempFilePath)
+	defer func() {
+		if tempFilePath == "" {
+			return
+		}
+		if err := os.Remove(tempFilePath); err != nil {
+			log.Printf("Failed to remove temporary uploaded database file %s: %v", tempFilePath, err)
+		}
+	}()
 	_, err = io.Copy(tempFile, file)
 	if err != nil {
 		handleWebErr(w, err)
 		return
 	}
-	tempFile.Close()
-	tempDb, err := model.OpenDatabase(tempFilePath)
-	if err != nil {
-		web.renderSettings(w, r, "Could not read uploaded database backup file. Please verify that it a valid "+
-			"database file.")
+	if err = tempFile.Close(); err != nil {
+		handleWebErr(w, err)
 		return
 	}
-	tempDb.Close()
+	tempDb, err := model.OpenDatabase(tempFilePath)
+	if err != nil {
+		web.renderSettings(
+			w, r, "Could not read uploaded database backup file. Please verify that it a valid database file.",
+		)
+		return
+	}
+	if err = tempDb.Close(); err != nil {
+		handleWebErr(w, err)
+		return
+	}
 
 	// Back up the current database.
 	err = web.arena.Database.Backup(web.arena.EventSettings.Name, "pre_restore")
@@ -170,7 +285,10 @@ func (web *Web) restoreDbHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Replace the current database with the new one.
-	web.arena.Database.Close()
+	if err = web.arena.Database.Close(); err != nil {
+		handleWebErr(w, err)
+		return
+	}
 	err = os.Remove(web.arena.Database.Path)
 	if err != nil {
 		handleWebErr(w, err)
@@ -181,6 +299,7 @@ func (web *Web) restoreDbHandler(w http.ResponseWriter, r *http.Request) {
 		handleWebErr(w, err)
 		return
 	}
+	tempFilePath = ""
 	web.arena.Database, err = model.OpenDatabase(web.arena.Database.Path)
 	if err != nil {
 		handleWebErr(w, err)
@@ -195,46 +314,64 @@ func (web *Web) restoreDbHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/setup/settings", 303)
 }
 
-// Deletes all data except for the team list.
+// Deletes all match data including and beyond the given tournament stage.
 func (web *Web) clearDbHandler(w http.ResponseWriter, r *http.Request) {
 	if !web.userIsAdmin(w, r) {
 		return
 	}
 
+	matchType, err := model.MatchTypeFromString(r.PathValue("type"))
+	if err != nil || matchType == model.Test {
+		web.renderSettings(w, r, "Invalid tournament stage to clear.")
+		return
+
+	}
+
 	// Back up the database.
-	err := web.arena.Database.Backup(web.arena.EventSettings.Name, "pre_clear")
+	err = web.arena.Database.Backup(web.arena.EventSettings.Name, "pre_clear")
 	if err != nil {
 		handleWebErr(w, err)
 		return
 	}
 
-	err = web.arena.Database.TruncateMatches()
-	if err != nil {
-		handleWebErr(w, err)
-		return
+	switch matchType {
+	case model.Practice:
+		if err = web.deleteMatchDataForType(model.Practice); err != nil {
+			handleWebErr(w, err)
+			return
+		}
+	case model.Qualification:
+		if err = web.deleteMatchDataForType(model.Qualification); err != nil {
+			handleWebErr(w, err)
+			return
+		}
+		if err = web.arena.Database.TruncateRankings(); err != nil {
+			handleWebErr(w, err)
+			return
+		}
+	case model.Playoff:
+		if err = web.deleteMatchDataForType(model.Playoff); err != nil {
+			handleWebErr(w, err)
+			return
+		}
+		if err = web.arena.Database.TruncateAlliances(); err != nil {
+			handleWebErr(w, err)
+			return
+		}
+		web.arena.AllianceSelectionAlliances = []model.Alliance{}
+		web.arena.AllianceSelectionRankedTeams = []model.AllianceSelectionRankedTeam{}
 	}
-	err = web.arena.Database.TruncateMatchResults()
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-	err = web.arena.Database.TruncateRankings()
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-	err = web.arena.Database.TruncateAlliances()
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-	web.arena.AllianceSelectionAlliances = []model.Alliance{}
-	cachedRankedTeams = []*RankedTeam{}
 
 	http.Redirect(w, r, "/setup/settings", 303)
 }
 
 func (web *Web) renderSettings(w http.ResponseWriter, r *http.Request, errorMessage string) {
+	web.renderSettingsWithStatus(w, r, errorMessage, "event", http.StatusOK)
+}
+
+func (web *Web) renderSettingsWithStatus(
+	w http.ResponseWriter, r *http.Request, errorMessage string, activeSettingsTab string, statusCode int,
+) {
 	template, err := web.parseFiles("templates/setup_settings.html", "templates/base.html")
 	if err != nil {
 		handleWebErr(w, err)
@@ -242,11 +379,47 @@ func (web *Web) renderSettings(w http.ResponseWriter, r *http.Request, errorMess
 	}
 	data := struct {
 		*model.EventSettings
-		ErrorMessage string
-	}{web.arena.EventSettings, errorMessage}
+		ErrorMessage      string
+		ActiveSettingsTab string
+	}{web.arena.EventSettings, errorMessage, activeSettingsTab}
+	if statusCode != http.StatusOK {
+		w.WriteHeader(statusCode)
+	}
 	err = template.ExecuteTemplate(w, "base", data)
 	if err != nil {
 		handleWebErr(w, err)
 		return
 	}
+}
+
+// Deletes all match data (matches, results, and scheduled breaks) for the given match type.
+func (web *Web) deleteMatchDataForType(matchType model.MatchType) error {
+	matches, err := web.arena.Database.GetMatchesByType(matchType, true)
+	if err != nil {
+		return err
+	}
+	for _, match := range matches {
+		// Loop to delete all match results for the match before deleting the match itself.
+		matchResult, err := web.arena.Database.GetMatchResultForMatch(match.Id)
+		if err != nil {
+			return err
+		}
+		for matchResult != nil {
+			if err = web.arena.Database.DeleteMatchResult(matchResult.Id); err != nil {
+				return err
+			}
+			matchResult, err = web.arena.Database.GetMatchResultForMatch(match.Id)
+			if err != nil {
+				return err
+			}
+		}
+
+		if err = web.arena.Database.DeleteMatch(match.Id); err != nil {
+			return err
+		}
+	}
+	if err = web.arena.Database.DeleteScheduledBreaksByMatchType(matchType); err != nil {
+		return err
+	}
+	return nil
 }

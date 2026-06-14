@@ -63,27 +63,18 @@ func (web *Web) awardsPostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		teamId, _ := strconv.Atoi(r.PostFormValue("teamId"))
-		award := model.Award{Id: awardId, Type: model.JudgedAward, AwardName: r.PostFormValue("awardName"),
-			TeamId: teamId, PersonName: r.PostFormValue("personName")}
+		award := model.Award{
+			Id:         awardId,
+			Type:       model.JudgedAward,
+			AwardName:  r.PostFormValue("awardName"),
+			TeamId:     teamId,
+			PersonName: r.PostFormValue("personName"),
+		}
 		if err := tournament.CreateOrUpdateAward(web.arena.Database, &award, true); err != nil {
 			handleWebErr(w, err)
 			return
 		}
 	}
 
-	http.Redirect(w, r, "/setup/awards", 303)
-}
-
-// Publishes the awards to the web.
-func (web *Web) awardsPublishHandler(w http.ResponseWriter, r *http.Request) {
-	if !web.userIsAdmin(w, r) {
-		return
-	}
-
-	err := web.arena.TbaClient.PublishAwards(web.arena.Database)
-	if err != nil {
-		http.Error(w, "Failed to publish awards: "+err.Error(), 500)
-		return
-	}
 	http.Redirect(w, r, "/setup/awards", 303)
 }
