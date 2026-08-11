@@ -46,10 +46,10 @@ UI for listing matches and their results.
             <td class="bg-{{$m.ColorClass}}">{{$m.ShortName}}</td>
             <td class="bg-{{$m.ColorClass}}">{{$m.Time}}</td>
             <td class="bg-{{$m.ColorClass}} text-center red-text">
-              {{index $m.RedTeams 0}}, {{index $m.RedTeams 1}}, {{index $m.RedTeams 2}}
+              {{index $m.RedTeams 0}}, {{index $m.RedTeams 1}}
             </td>
             <td class="bg-{{$m.ColorClass}} text-center blue-text">
-              {{index $m.BlueTeams 0}}, {{index $m.BlueTeams 1}}, {{index $m.BlueTeams 2}}
+              {{index $m.BlueTeams 0}}, {{index $m.BlueTeams 1}}
             </td>
             <td class="bg-{{$m.ColorClass}} text-center red-text">
               {{if $m.IsComplete}}

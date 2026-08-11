@@ -149,6 +149,55 @@ func TestArenaMatchFlow(t *testing.T) {
 	assert.False(t, arena.AllianceStations["R2"].Ready)
 }
 
+// Walks the match timeline at production timings and checks that each cue fires once, in order. The countdown
+// ("drivers, pick up your controllers, 3-2-1") replaces the old end-of-autonomous buzzer.
+func TestArenaMatchSounds(t *testing.T) {
+	arena := SetupTestArena(t)
+	originalTiming := game.MatchTiming
+	defer func() {
+		game.MatchTiming = originalTiming
+		game.UpdateMatchSounds()
+	}()
+	game.UpdateMatchSounds()
+
+	for _, station := range AllianceStationIds {
+		arena.AllianceStations[station].Bypass = true
+	}
+	assert.Nil(t, arena.StartMatch())
+
+	// Advances the match clock to the given offset and returns the names of any sounds triggered by that step.
+	advanceTo := func(matchTimeSec float64) []string {
+		before := len(arena.soundsPlayed)
+		arena.MatchStartTime = time.Now().Add(-time.Duration(matchTimeSec * float64(time.Second)))
+		arena.Update()
+		if len(arena.soundsPlayed) == before {
+			return nil
+		}
+		var played []string
+		for _, sound := range game.MatchSounds {
+			if _, ok := arena.soundsPlayed[sound]; ok {
+				played = append(played, sound.Name)
+			}
+		}
+		return played[before:]
+	}
+
+	timing := game.MatchTiming
+	autoEndSec := float64(timing.AutoDurationSec)
+	teleopStartSec := autoEndSec + float64(timing.PauseDurationSec)
+	matchEndSec := teleopStartSec + float64(timing.TeleopDurationSec)
+
+	assert.Equal(t, []string{"start"}, advanceTo(0))
+	assert.Nil(t, advanceTo(autoEndSec-2), "no cue partway through autonomous")
+	assert.Equal(t, []string{"countdown"}, advanceTo(autoEndSec))
+	assert.Equal(t, PausePeriod, arena.MatchState)
+	assert.Equal(t, []string{"resume"}, advanceTo(teleopStartSec))
+	assert.Equal(t, TeleopPeriod, arena.MatchState)
+	assert.Equal(t, []string{"warning"}, advanceTo(matchEndSec-float64(timing.WarningSoundTimeSec)))
+	assert.Equal(t, []string{"end"}, advanceTo(matchEndSec))
+	assert.Equal(t, PostMatch, arena.MatchState)
+}
+
 func TestArenaStateEnforcement(t *testing.T) {
 	arena := setupTestArena(t)
 

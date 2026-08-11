@@ -18,7 +18,12 @@ func TestScoringPanel(t *testing.T) {
 	recorder := web.getHttpResponse("/panels/scoring")
 	assert.Equal(t, 200, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), "Scoring Panel - Untitled Event - Cheesy Arena")
+	assert.Contains(t, recorder.Body.String(), "Autonomous")
+	assert.Contains(t, recorder.Body.String(), "Driver Controlled")
 	assert.Contains(t, recorder.Body.String(), "Endgame")
+	assert.Contains(t, recorder.Body.String(), `id="red-FactoryParks"`)
+	assert.Contains(t, recorder.Body.String(), `id="blue-CityCenterProducts"`)
+	assert.Contains(t, recorder.Body.String(), `id="red-BarnHangs"`)
 	assert.NotContains(t, recorder.Body.String(), "Tower")
 }
 
@@ -39,16 +44,38 @@ func TestScoringPanelWebsocket(t *testing.T) {
 	readWebsocketType(t, ws, "realtimeScore")
 
 	ws.Write("score", scoringPanelScoreMessage{
-		RedAuto: 3, RedTeleop: 7, RedPostMatch: 2,
-		BlueAuto: 4, BlueTeleop: 5, BluePostMatch: 6,
+		Red: scoringPanelAllianceScore{
+			FactoryParks: 1, AutoCrops: 2, SilosDumped: 1, TeleopCrops: 3, CityLimitsProducts: 1,
+			CityCenterProducts: 1, BarnParks: 1, BarnHangs: 1,
+		},
+		Blue: scoringPanelAllianceScore{
+			FactoryParks: 2, AutoCrops: 1, TeleopCrops: 2, CityLimitsProducts: 2, BarnParks: 2,
+			// Negative element counts are clamped to zero rather than subtracting points.
+			BarnHangs: -3,
+		},
 	})
 	readWebsocketType(t, ws, "realtimeScore")
-	assert.Equal(t, 3, web.arena.RedRealtimeScore.CurrentScore.AutoPoints)
-	assert.Equal(t, 7, web.arena.RedRealtimeScore.CurrentScore.TeleopPoints)
-	assert.Equal(t, 2, web.arena.RedRealtimeScore.CurrentScore.PostMatchPoints)
-	assert.Equal(t, 4, web.arena.BlueRealtimeScore.CurrentScore.AutoPoints)
-	assert.Equal(t, 5, web.arena.BlueRealtimeScore.CurrentScore.TeleopPoints)
-	assert.Equal(t, 6, web.arena.BlueRealtimeScore.CurrentScore.PostMatchPoints)
+	redScore := &web.arena.RedRealtimeScore.CurrentScore
+	blueScore := &web.arena.BlueRealtimeScore.CurrentScore
+	assert.Equal(t, 1, redScore.FactoryParks)
+	assert.Equal(t, 2, redScore.AutoCrops)
+	assert.Equal(t, 1, redScore.SilosDumped)
+	assert.Equal(t, 3, redScore.TeleopCrops)
+	assert.Equal(t, 1, redScore.CityLimitsProducts)
+	assert.Equal(t, 1, redScore.CityCenterProducts)
+	assert.Equal(t, 1, redScore.BarnParks)
+	assert.Equal(t, 1, redScore.BarnHangs)
+	assert.Equal(t, 24, redScore.AutoPoints())
+	assert.Equal(t, 46, redScore.TeleopPoints())
+	assert.Equal(t, 30, redScore.EndgamePoints())
+	assert.Equal(t, 0, blueScore.BarnHangs)
+	assert.Equal(t, 17, blueScore.AutoPoints())
+	assert.Equal(t, 34, blueScore.TeleopPoints())
+	assert.Equal(t, 10, blueScore.EndgamePoints())
+
+	// The scoring panel does not own penalties, so committing a score must leave them untouched.
+	assert.Equal(t, 0, redScore.MinorPenalties)
+	assert.Equal(t, 0, redScore.MajorPenalties)
 
 	ws.Write("commitMatch", nil)
 	readWebsocketType(t, ws, "error")

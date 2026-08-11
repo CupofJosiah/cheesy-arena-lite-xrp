@@ -18,36 +18,19 @@ UI for configuring the team list for an event.
     <form action="/setup/teams" method="POST">
       <fieldset>
         <legend>Import Teams</legend>
-        {{if not .EventSettings.TbaDownloadEnabled}}
-        <p>To automatically download data about teams, enable TBA Team Info Download on the settings page</p>
-        {{end}}
+        <p>Teams are added by number only; fill in names and other details by editing each team.</p>
         <div class="row mb-3">
           <textarea class="form-control" rows="10" name="teamNumbers"
             placeholder="One team number per line"></textarea>
         </div>
         <div class="row mb-3">
-          <button type="submit" class="btn btn-primary" onclick="$('#loadingFromTba').modal('show');">Add Teams</button>
+          <button type="submit" class="btn btn-primary" onclick="$('#addingTeams').modal('show');">Add Teams</button>
         </div>
-        {{if .EventSettings.TbaDownloadEnabled}}
-        <div class="row mb-3">
-          <a href="/setup/teams/refresh" class="btn btn-primary" onclick="$('#loadingFromTba').modal('show');">
-            Refresh Team Data from TBA
-          </a>
-        </div>
-        {{end}}
         <div class="row mb-3">
           <button type="button" class="btn btn-danger" onclick="$('#confirmClearTeams').modal('show');">
             Clear Team List
           </button>
         </div>
-        {{if .EventSettings.NetworkSecurityEnabled}}
-        <div class="row mb-3">
-          <a href="/setup/teams/generate_wpa_keys?all=true" class="btn btn-danger">Generate All WPA Keys</a>
-        </div>
-        <div class="row mb-3">
-          <a href="/setup/teams/generate_wpa_keys?all=false" class="btn btn-danger">Generate Missing WPA Keys</a>
-        </div>
-        {{end}}
       </fieldset>
     </form>
   </div>
@@ -113,11 +96,11 @@ UI for configuring the team list for an event.
     </div>
   </div>
 </div>
-<div id="loadingFromTba" class="modal fade" style="top: 20%;" data-bs-backdrop="static" data-bs-keyboard="false">
+<div id="addingTeams" class="modal fade" style="top: 20%;" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Downloading Team Data from TBA...<h5>
+        <h5 class="modal-title">Adding Teams...<h5>
       </div>
       <div class="modal-body">
         <div class="progress">

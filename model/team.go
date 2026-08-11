@@ -18,7 +18,6 @@ type Team struct {
 	RookieYear      int
 	RobotName       string
 	Accomplishments string
-	WpaKey          string
 	YellowCard      bool
 	HasConnected    bool
 	FtaNotes        string

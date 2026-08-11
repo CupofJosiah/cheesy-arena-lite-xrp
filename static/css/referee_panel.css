@@ -108,42 +108,109 @@ h3 {
   border: 0.3vw solid #ff0;
 }
 
-#foulPoints {
+#penalties {
   display: flex;
   flex-direction: column;
   gap: 1vw;
 }
 
-#foulPoints label {
+.penalty-note {
+  margin: -0.5vw 0 0 0;
+  color: var(--muted);
+  font-size: 1vw;
+}
+
+.alliance-penalties {
+  padding: 0.8vw 1vw;
+  border: 1px solid #666;
+  border-radius: 0.5vw;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8vw;
+}
+
+.alliance-penalties.red {
+  background-color: #322;
+}
+
+.alliance-penalties.blue {
+  background-color: #223;
+}
+
+.alliance-penalties h4 {
+  margin: 0;
+  font-size: 1.6vw;
+}
+
+.penalty-counter {
   display: grid;
-  grid-template-columns: 8vw minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 1vw;
-  font-size: 2vw;
+}
+
+.penalty-label {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 1.6vw;
   font-weight: bold;
+  line-height: 1.15;
 }
 
-#foulPoints label.red span {
-  color: #ffb3b3;
+/* Points this tier awards to the opposing alliance, rendered under the tier name. */
+.penalty-value {
+  font-size: 1vw;
+  font-weight: normal;
+  color: var(--muted);
 }
 
-#foulPoints label.blue span {
-  color: #b8d4ff;
+.penalty-value::before {
+  content: "+";
 }
 
-#foulPoints input {
-  width: 100%;
-  height: 4.5vw;
+.penalty-value::after {
+  content: " to opponent";
+}
+
+.penalty-controls {
+  display: grid;
+  grid-template-columns: 4vw 4vw 4vw;
+  align-items: center;
+  gap: 0.5vw;
+}
+
+.penalty-button {
+  height: 4vw;
   border: none;
   border-radius: 0.35vw;
-  padding: 0 1vw;
-  font-size: 2.4vw;
+  color: var(--text);
+  background-color: rgba(255, 255, 255, 0.18);
+  font-size: 2.2vw;
   font-weight: bold;
-  text-align: right;
+  line-height: 1;
 }
 
-#foulPoints input:disabled {
-  opacity: 0.5;
+.penalty-count {
+  height: 4vw;
+  border-radius: 0.35vw;
+  background-color: #fff;
+  color: #111;
+  font-size: 2.2vw;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.penalty-total {
+  padding-top: 0.6vw;
+  border-top: 1px solid #666;
+  display: flex;
+  justify-content: space-between;
+  gap: 1vw;
+  font-size: 1.5vw;
+  font-weight: bold;
 }
 
 .scoring-status {
@@ -220,14 +287,35 @@ h3 {
     font-size: 8vw;
   }
 
-  #foulPoints label {
-    grid-template-columns: 24vw minmax(0, 1fr);
-    font-size: 6vw;
+  .penalty-note {
+    font-size: 3.5vw;
   }
 
-  #foulPoints input {
-    height: 14vw;
-    font-size: 8vw;
+  .alliance-penalties h4 {
+    font-size: 5vw;
+  }
+
+  .penalty-label {
+    font-size: 5vw;
+  }
+
+  .penalty-value {
+    font-size: 3.2vw;
+  }
+
+  .penalty-controls {
+    grid-template-columns: 13vw 13vw 13vw;
+    gap: 1.5vw;
+  }
+
+  .penalty-button,
+  .penalty-count {
+    height: 13vw;
+    font-size: 7vw;
+  }
+
+  .penalty-total {
+    font-size: 4.5vw;
   }
 
   .scoring-status {

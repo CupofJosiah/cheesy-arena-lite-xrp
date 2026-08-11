@@ -190,7 +190,6 @@ func (web *Web) newHandler() http.Handler {
 	mux.HandleFunc("GET /reports/csv/rankings", web.rankingsCsvReportHandler)
 	mux.HandleFunc("GET /reports/csv/schedule/{type}", web.scheduleCsvReportHandler)
 	mux.HandleFunc("GET /reports/csv/teams", web.teamsCsvReportHandler)
-	mux.HandleFunc("GET /reports/csv/wpa_keys", web.wpaKeysCsvReportHandler)
 	mux.HandleFunc("GET /reports/pdf/alliances", web.alliancesPdfReportHandler)
 	mux.HandleFunc("GET /reports/pdf/backups", web.backupsPdfReportHandler)
 	mux.HandleFunc("GET /reports/pdf/bracket", web.bracketPdfReportHandler)
@@ -229,7 +228,6 @@ func (web *Web) newHandler() http.Handler {
 	mux.HandleFunc("GET /setup/teams/{id}/edit", web.teamEditGetHandler)
 	mux.HandleFunc("POST /setup/teams/{id}/edit", web.teamEditPostHandler)
 	mux.HandleFunc("POST /setup/teams/clear", web.teamsClearHandler)
-	mux.HandleFunc("GET /setup/teams/generate_wpa_keys", web.teamsGenerateWpaKeysHandler)
 	mux.HandleFunc("GET /setup/teams/progress", web.teamsUpdateProgressBarHandler)
 	return mux
 }

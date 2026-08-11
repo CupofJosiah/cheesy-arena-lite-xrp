@@ -52,10 +52,8 @@ func TestWallDisplayWebsocket(t *testing.T) {
 	readWebsocketType(t, ws, "matchLoad")
 	web.arena.AllianceStations["R1"].Bypass = true
 	web.arena.AllianceStations["R2"].Bypass = true
-	web.arena.AllianceStations["R3"].Bypass = true
 	web.arena.AllianceStations["B1"].Bypass = true
 	web.arena.AllianceStations["B2"].Bypass = true
-	web.arena.AllianceStations["B3"].Bypass = true
 	web.arena.StartMatch()
 	web.arena.Update()
 	web.arena.Update()

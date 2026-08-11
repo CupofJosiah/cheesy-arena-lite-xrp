@@ -18,7 +18,8 @@ var MatchTiming = struct {
 	TeleopDurationSec   int
 	WarningSoundTimeSec int
 	TimeoutDurationSec  int
-}{10, 3, 150, 30, 0}
+	// The pause is sized so the "drivers, pick up your controllers" countdown finishes before the teleop horn.
+}{10, 6, 150, 30, 0}
 
 func GetDurationToAutoEnd() time.Duration {
 	return time.Duration(MatchTiming.AutoDurationSec) * time.Second

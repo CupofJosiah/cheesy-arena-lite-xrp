@@ -72,14 +72,6 @@ UI for editing team data.
               <input type="checkbox" id="hasConnected" name="hasConnected" {{if .Team.HasConnected}} checked{{end}}/>
             </div>
           </div>
-          {{if .EventSettings.NetworkSecurityEnabled}}
-          <div class="row mb-3">
-            <label class="col-lg-3 control-label">WPA Key</label>
-            <div class="col-lg-9">
-              <input type="text" class="form-control" name="wpaKey" value="{{.Team.WpaKey}}">
-            </div>
-          </div>
-          {{end}}
           <div class="row justify-content-center">
             <div class="col-md-auto">
               <a href="/setup/teams">

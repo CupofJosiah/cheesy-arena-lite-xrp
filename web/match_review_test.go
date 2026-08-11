@@ -38,24 +38,27 @@ func TestMatchReviewEditExistingResult(t *testing.T) {
 	web.arena.Database.CreateMatch(&match)
 	matchResult := model.NewMatchResult()
 	matchResult.MatchId = match.Id
-	matchResult.RedScore = &game.Score{AutoPoints: 3, TeleopPoints: 7, PostMatchPoints: 2}
-	matchResult.BlueScore = &game.Score{AutoPoints: 4, TeleopPoints: 5, FoulPointsAgainst: 1}
+	matchResult.RedScore = game.TestScore1()
+	matchResult.BlueScore = game.TestScore2()
 	assert.Nil(t, web.arena.Database.CreateMatchResult(matchResult))
 
 	recorder := web.getHttpResponse(fmt.Sprintf("/match_review/%d/edit", match.Id))
 	assert.Equal(t, 200, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), " Practice 1 ")
-	assert.Contains(t, recorder.Body.String(), "Auto")
-	assert.Contains(t, recorder.Body.String(), "Teleop")
+	assert.Contains(t, recorder.Body.String(), "Autonomous")
+	assert.Contains(t, recorder.Body.String(), "Driver Controlled")
 	assert.Contains(t, recorder.Body.String(), "Endgame")
-	assert.Contains(t, recorder.Body.String(), "Foul Points Against")
+	assert.Contains(t, recorder.Body.String(), "Penalties Committed")
+	assert.Contains(t, recorder.Body.String(), "redMinorPenalties")
+	assert.Contains(t, recorder.Body.String(), "blueBarnHangs")
 	assert.NotContains(t, recorder.Body.String(), "Tower")
 
+	// Red scores 5 + 7 + 5 = 17 and concedes 10; blue scores 7 + 10 + 25 = 42 and concedes 25.
 	postBody := fmt.Sprintf(
 		"matchResultJson=%s",
 		url.QueryEscape(fmt.Sprintf(
-			`{"MatchId":%d,"RedScore":{"AutoPoints":1,"TeleopPoints":2,"PostMatchPoints":3},`+
-				`"BlueScore":{"AutoPoints":4,"TeleopPoints":5,"PostMatchPoints":6,"FoulPointsAgainst":7},`+
+			`{"MatchId":%d,"RedScore":{"FactoryParks":1,"TeleopCrops":1,"BarnParks":1,"MinorPenalties":1},`+
+				`"BlueScore":{"AutoCrops":1,"CityLimitsProducts":1,"BarnHangs":1,"MajorPenalties":1},`+
 				`"RedCards":{"105":"yellow"},"BlueCards":{}}`,
 			match.Id,
 		)),
@@ -65,8 +68,9 @@ func TestMatchReviewEditExistingResult(t *testing.T) {
 
 	updatedResult, err := web.arena.Database.GetMatchResultForMatch(match.Id)
 	assert.Nil(t, err)
-	assert.Equal(t, 6, updatedResult.RedScoreSummary().MatchPoints)
-	assert.Equal(t, 15, updatedResult.BlueScoreSummary().Score)
+	assert.Equal(t, 17, updatedResult.RedScoreSummary().MatchPoints)
+	assert.Equal(t, 42, updatedResult.RedScoreSummary().Score)
+	assert.Equal(t, 52, updatedResult.BlueScoreSummary().Score)
 	assert.Equal(t, "yellow", updatedResult.RedCards["105"])
 }
 
@@ -80,8 +84,8 @@ func TestMatchReviewEditCurrentMatch(t *testing.T) {
 	postBody := fmt.Sprintf(
 		"matchResultJson=%s",
 		url.QueryEscape(fmt.Sprintf(
-			`{"MatchId":%d,"RedScore":{"AutoPoints":1,"TeleopPoints":2,"PostMatchPoints":3},`+
-				`"BlueScore":{"AutoPoints":4,"TeleopPoints":5,"FoulPointsAgainst":6},`+
+			`{"MatchId":%d,"RedScore":{"FactoryParks":1,"TeleopCrops":2,"BarnParks":3},`+
+				`"BlueScore":{"AutoCrops":4,"CityCenterProducts":5,"MajorPenalties":6},`+
 				`"RedCards":{"105":"yellow"},"BlueCards":{}}`,
 			match.Id,
 		)),
@@ -92,8 +96,16 @@ func TestMatchReviewEditCurrentMatch(t *testing.T) {
 
 	match2, _ := web.arena.Database.GetMatchById(match.Id)
 	assert.Equal(t, game.MatchScheduled, match2.Status)
-	assert.Equal(t, game.Score{AutoPoints: 1, TeleopPoints: 2, PostMatchPoints: 3}, web.arena.RedRealtimeScore.CurrentScore)
-	assert.Equal(t, game.Score{AutoPoints: 4, TeleopPoints: 5, FoulPointsAgainst: 6}, web.arena.BlueRealtimeScore.CurrentScore)
+	assert.Equal(
+		t,
+		game.Score{FactoryParks: 1, TeleopCrops: 2, BarnParks: 3},
+		web.arena.RedRealtimeScore.CurrentScore,
+	)
+	assert.Equal(
+		t,
+		game.Score{AutoCrops: 4, CityCenterProducts: 5, MajorPenalties: 6},
+		web.arena.BlueRealtimeScore.CurrentScore,
+	)
 	assert.Equal(t, "yellow", web.arena.RedRealtimeScore.Cards["105"])
 }
 
@@ -103,9 +115,10 @@ func TestMatchReviewSummary(t *testing.T) {
 	match := model.Match{Type: model.Qualification, LongName: "Qualification 1", ShortName: "Q1"}
 	web.arena.Database.CreateMatch(&match)
 
+	// Red scores 5 + 7 + 5 = 17 and concedes 10; blue scores 7 + 10 + 25 = 42 and concedes 25.
 	postBody := fmt.Sprintf(
-		`{"MatchId":%d,"RedScore":{"AutoPoints":1,"TeleopPoints":2,"PostMatchPoints":3},`+
-			`"BlueScore":{"AutoPoints":4,"TeleopPoints":5,"PostMatchPoints":6,"FoulPointsAgainst":7},`+
+		`{"MatchId":%d,"RedScore":{"FactoryParks":1,"TeleopCrops":1,"BarnParks":1,"MinorPenalties":1},`+
+			`"BlueScore":{"AutoCrops":1,"CityLimitsProducts":1,"BarnHangs":1,"MajorPenalties":1},`+
 			`"RedCards":{},"BlueCards":{}}`,
 		match.Id,
 	)
@@ -115,10 +128,10 @@ func TestMatchReviewSummary(t *testing.T) {
 
 	var response MatchReviewSummaryResponse
 	assert.Nil(t, json.Unmarshal(recorder.Body.Bytes(), &response))
-	assert.Equal(t, 6, response.RedSummary.MatchPoints)
-	assert.Equal(t, 13, response.RedSummary.Score)
-	assert.Equal(t, 15, response.BlueSummary.MatchPoints)
-	assert.Equal(t, 15, response.BlueSummary.Score)
+	assert.Equal(t, 17, response.RedSummary.MatchPoints)
+	assert.Equal(t, 42, response.RedSummary.Score)
+	assert.Equal(t, 42, response.BlueSummary.MatchPoints)
+	assert.Equal(t, 52, response.BlueSummary.Score)
 
 	matchResult, err := web.arena.Database.GetMatchResultForMatch(match.Id)
 	assert.Nil(t, err)

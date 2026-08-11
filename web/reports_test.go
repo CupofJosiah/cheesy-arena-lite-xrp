@@ -85,10 +85,10 @@ func TestScheduleCsvReport(t *testing.T) {
 	recorder := web.getHttpResponse("/reports/csv/schedule/qualification")
 	assert.Equal(t, 200, recorder.Code)
 	assert.Equal(t, "text/plain", recorder.Header()["Content-Type"][0])
-	expectedBody := "Match,Type,Time,Red1,Red1IsSurrogate,Red2,Red2IsSurrogate,Red3,Red3IsSurrogate,Blue1," +
-		"Blue1IsSurrogate,Blue2,Blue2IsSurrogate,Blue3,Blue3IsSurrogate\nQ1,Qualification," + match1Time.String() +
-		",1,false,2,false,3,false,4,true,5,true,6,true\nQ2,Qualification," + match2Time.String() +
-		",7,true,8,true,9,true,10,false,11,false,12,false\n\n"
+	expectedBody := "Match,Type,Time,Red1,Red1IsSurrogate,Red2,Red2IsSurrogate,Blue1,Blue1IsSurrogate,Blue2," +
+		"Blue2IsSurrogate\nQ1,Qualification," + match1Time.String() +
+		",1,false,2,false,4,true,5,true\nQ2,Qualification," + match2Time.String() +
+		",7,true,8,true,10,false,11,false\n\n"
 	assert.Equal(t, expectedBody, recorder.Body.String())
 }
 
@@ -175,21 +175,6 @@ func TestTeamsPdfReport(t *testing.T) {
 	recorder := web.getHttpResponse("/reports/pdf/teams")
 	assert.Equal(t, 200, recorder.Code)
 	assert.Equal(t, "application/pdf", recorder.Header()["Content-Type"][0])
-}
-
-func TestWpaKeysCsvReport(t *testing.T) {
-	web := setupTestWeb(t)
-
-	team1 := model.Team{Id: 254, WpaKey: "12345678"}
-	team2 := model.Team{Id: 1114, WpaKey: "9876543210"}
-	web.arena.Database.CreateTeam(&team1)
-	web.arena.Database.CreateTeam(&team2)
-
-	recorder := web.getHttpResponse("/reports/csv/wpa_keys")
-	assert.Equal(t, 200, recorder.Code)
-	assert.Equal(t, "text/csv", recorder.Header()["Content-Type"][0])
-	assert.Equal(t, "attachment; filename=keys.csv", recorder.Header()["Content-Disposition"][0])
-	assert.Equal(t, "254,12345678\r\n1114,9876543210\r\n", recorder.Body.String())
 }
 
 func TestAlliancesPdfReport(t *testing.T) {

@@ -8,15 +8,12 @@ package web
 import (
 	"fmt"
 	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/dchest/uniuri"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-const wpaKeyLength = 8
-
-// Global var to hold the team download progress percentage.
+// Global var to hold the team import progress percentage.
 var progressPercentage float64 = 5
 
 // Shows the team list.
@@ -179,36 +176,7 @@ func (web *Web) teamDeletePostHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/setup/teams", 303)
 }
 
-// Generates random WPA keys and saves them to the team models.
-func (web *Web) teamsGenerateWpaKeysHandler(w http.ResponseWriter, r *http.Request) {
-	if !web.userIsAdmin(w, r) {
-		return
-	}
-
-	generateAllKeys := false
-	if all, ok := r.URL.Query()["all"]; ok {
-		generateAllKeys = all[0] == "true"
-	}
-
-	teams, err := web.arena.Database.GetAllTeams()
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-	for _, team := range teams {
-		if len(team.WpaKey) == 0 || generateAllKeys {
-			team.WpaKey = uniuri.NewLen(wpaKeyLength)
-			if err := web.arena.Database.UpdateTeam(&team); err != nil {
-				handleWebErr(w, err)
-				return
-			}
-		}
-	}
-
-	http.Redirect(w, r, "/setup/teams", 303)
-}
-
-// Returns the current TBA team data download progress.
+// Returns the current team import progress.
 func (web *Web) teamsUpdateProgressBarHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	if _, err := w.Write([]byte(fmt.Sprintf("%.0f", progressPercentage))); err != nil {

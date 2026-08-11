@@ -23,7 +23,7 @@ func TestFieldMonitorDisplay(t *testing.T) {
 func TestFieldMonitorDisplayWebsocket(t *testing.T) {
 	web := setupTestWeb(t)
 	web.arena.Database.CreateTeam(&model.Team{Id: 254})
-	assert.Nil(t, web.arena.SubstituteTeams(0, 0, 0, 254, 0, 0))
+	assert.Nil(t, web.arena.SubstituteTeams(0, 0, 254, 0))
 
 	server, wsUrl := web.startTestServer()
 	defer server.Close()
@@ -52,7 +52,7 @@ func TestFieldMonitorDisplayWebsocket(t *testing.T) {
 func TestFieldMonitorFtaDisplayWebsocket(t *testing.T) {
 	web := setupTestWeb(t)
 	web.arena.Database.CreateTeam(&model.Team{Id: 254})
-	assert.Nil(t, web.arena.SubstituteTeams(0, 0, 0, 254, 0, 0))
+	assert.Nil(t, web.arena.SubstituteTeams(0, 0, 254, 0))
 
 	server, wsUrl := web.startTestServer()
 	defer server.Close()
@@ -80,6 +80,6 @@ func TestFieldMonitorFtaDisplayWebsocket(t *testing.T) {
 	// Check error scenarios.
 	ws.Write("updateTeamNotes", map[string]any{"station": "N", "notes": "Bypassed in M2"})
 	assert.Contains(t, readWebsocketError(t, ws), "Invalid alliance station")
-	ws.Write("updateTeamNotes", map[string]any{"station": "R3", "notes": "Bypassed in M3"})
+	ws.Write("updateTeamNotes", map[string]any{"station": "R2", "notes": "Bypassed in M3"})
 	assert.Contains(t, readWebsocketError(t, ws), "No team present")
 }

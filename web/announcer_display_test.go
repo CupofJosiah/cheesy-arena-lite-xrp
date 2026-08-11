@@ -22,7 +22,7 @@ func TestAnnouncerDisplay(t *testing.T) {
 
 func TestAnnouncerDisplayMatchLoad(t *testing.T) {
 	web := setupTestWeb(t)
-	match := model.Match{Type: model.Playoff, Red1: 254, Red2: 1114, Blue3: 2056}
+	match := model.Match{Type: model.Playoff, Red1: 254, Red2: 1114, Blue1: 2056}
 	web.arena.LoadMatch(&match)
 
 	recorder := web.getHttpResponse("/displays/announcer/match_load")
@@ -78,10 +78,8 @@ func TestAnnouncerDisplayWebsocket(t *testing.T) {
 	readWebsocketType(t, ws, "matchLoad")
 	web.arena.AllianceStations["R1"].Bypass = true
 	web.arena.AllianceStations["R2"].Bypass = true
-	web.arena.AllianceStations["R3"].Bypass = true
 	web.arena.AllianceStations["B1"].Bypass = true
 	web.arena.AllianceStations["B2"].Bypass = true
-	web.arena.AllianceStations["B3"].Bypass = true
 	web.arena.StartMatch()
 	web.arena.Update()
 	messages := readWebsocketMultiple(t, ws, 3)

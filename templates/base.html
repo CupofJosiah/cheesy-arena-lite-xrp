@@ -35,7 +35,6 @@ Base template used by most pages to include common resources and optionally rend
             <div class="dropdown-menu">
               <a class="dropdown-item" href="/match_play">Match Play</a>
               <a class="dropdown-item" href="/match_review">Match Review</a>
-              <a class="dropdown-item" href="/match_logs">Match Logs</a>
               <a class="dropdown-item" href="/alliance_selection">Alliance Selection</a>
             </div>
           </li>
@@ -77,9 +76,6 @@ Base template used by most pages to include common resources and optionally rend
               <a class="dropdown-item" target="_blank" href="/reports/csv/schedule/playoff">Playoff Schedule</a>
               <a class="dropdown-item" target="_blank" href="/reports/csv/rankings">Standings</a>
               <a class="dropdown-item" target="_blank" href="/reports/csv/backups">Backup Teams</a>
-              {{if .EventSettings.NetworkSecurityEnabled}}
-              <a class="dropdown-item" target="_blank" href="/reports/csv/wpa_keys">WPA Keys</a>
-              {{end}}
             </div>
           </li>
           <li class="nav-item dropdown">

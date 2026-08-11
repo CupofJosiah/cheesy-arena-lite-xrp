@@ -35,7 +35,7 @@ func TestSetupSettings(t *testing.T) {
 	assert.NotContains(t, recorder.Body.String(), "tbaPublishingEnabled")
 	assert.NotContains(t, recorder.Body.String(), "Publishing Operations")
 
-	// Change the settings and check the response.
+	// Change the settings and check the response. TBA parameters are ignored; the fork does not publish to TBA.
 	recorder = web.postHttpResponse(
 		"/setup/settings",
 		"name=Chezy Champs&code=CC&playoffType=single&numPlayoffAlliances=16&tbaPublishingEnabled=on&"+
@@ -47,10 +47,9 @@ func TestSetupSettings(t *testing.T) {
 	recorder = web.getHttpResponse("/setup/settings")
 	assert.Contains(t, recorder.Body.String(), "Chezy Champs")
 	assert.Contains(t, recorder.Body.String(), "16")
-	assert.Contains(t, recorder.Body.String(), "2014cc")
+	assert.NotContains(t, recorder.Body.String(), "2014cc")
 	assert.NotContains(t, recorder.Body.String(), "secretId")
 	assert.NotContains(t, recorder.Body.String(), "tbasec")
-	assert.False(t, web.arena.EventSettings.TbaPublishingEnabled)
 	assert.Equal(t, 12, web.arena.EventSettings.AutoDurationSec)
 	assert.Equal(t, 4, web.arena.EventSettings.PauseDurationSec)
 	assert.Equal(t, 120, web.arena.EventSettings.TeleopDurationSec)

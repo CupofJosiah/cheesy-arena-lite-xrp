@@ -106,31 +106,99 @@ main {
   line-height: 1;
 }
 
-.alliance-score label {
+/* Period heading: Autonomous / Driver Controlled / Endgame. */
+.alliance-score h2 {
+  margin: 6px 0 0 0;
+  padding-bottom: 4px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.35);
+  font-size: 15pt;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.score-counter {
   display: grid;
-  grid-template-columns: minmax(120px, 0.65fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
+}
+
+.counter-label {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 17pt;
+  font-weight: bold;
+  line-height: 1.15;
+}
+
+/* Point value for the element, rendered underneath its name. */
+.counter-value {
+  font-size: 11pt;
+  font-weight: normal;
+  opacity: 0.75;
+}
+
+.counter-value::before {
+  content: "+";
+}
+
+.counter-controls {
+  display: grid;
+  grid-template-columns: 76px 72px 76px;
+  align-items: center;
+  gap: 8px;
+}
+
+.counter-button {
+  height: 68px;
+  border-radius: 8px;
+  color: var(--text-inverse);
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 26pt;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.counter-button:disabled {
+  opacity: 0.3;
+  box-shadow: none;
+}
+
+.counter-count {
+  height: 68px;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font-size: 28pt;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-totals {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 2px solid rgba(255, 255, 255, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15pt;
+}
+
+.score-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.score-totals .score-total {
+  margin-top: 4px;
   font-size: 22pt;
   font-weight: bold;
-}
-
-.alliance-score input {
-  width: 100%;
-  min-width: 0;
-  height: 82px;
-  border: 3px solid transparent;
-  border-radius: 8px;
-  padding: 0 14px;
-  font-size: 34pt;
-  font-weight: bold;
-  text-align: right;
-  color: var(--text);
-}
-
-.alliance-score input:disabled {
-  background: var(--muted);
-  color: #6b7280;
 }
 
 #panel-actions {
@@ -180,14 +248,39 @@ main {
     font-size: 22pt;
   }
 
-  .alliance-score label {
-    grid-template-columns: 110px minmax(0, 1fr);
-    font-size: 16pt;
+  .alliance-score h2 {
+    font-size: 13pt;
   }
 
-  .alliance-score input {
-    height: 56px;
-    font-size: 24pt;
+  .score-counter {
+    gap: 8px;
+  }
+
+  .counter-label {
+    font-size: 13pt;
+  }
+
+  .counter-value {
+    font-size: 10pt;
+  }
+
+  .counter-controls {
+    grid-template-columns: 56px 54px 56px;
+    gap: 6px;
+  }
+
+  .counter-button,
+  .counter-count {
+    height: 54px;
+    font-size: 20pt;
+  }
+
+  .score-totals {
+    font-size: 13pt;
+  }
+
+  .score-totals .score-total {
+    font-size: 17pt;
   }
 
   #panel-actions {

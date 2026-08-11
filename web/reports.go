@@ -654,29 +654,6 @@ func (web *Web) teamsPdfReportHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Generates a CSV-formatted report of the WPA keys, for import into the radio kiosk.
-func (web *Web) wpaKeysCsvReportHandler(w http.ResponseWriter, r *http.Request) {
-	if !web.userIsAdmin(w, r) {
-		return
-	}
-
-	teams, err := web.arena.Database.GetAllTeams()
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/csv")
-	w.Header().Set("Content-Disposition", "attachment; filename=keys.csv")
-	for _, team := range teams {
-		_, err := w.Write([]byte(fmt.Sprintf("%d,%s\r\n", team.Id, team.WpaKey)))
-		if err != nil {
-			handleWebErr(w, err)
-			return
-		}
-	}
-}
-
 // Generates a PDF-formatted report of the playoff alliances and the teams contained within.
 func (web *Web) alliancesPdfReportHandler(w http.ResponseWriter, r *http.Request) {
 	alliances, err := web.arena.Database.GetAllAlliances()

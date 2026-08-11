@@ -94,7 +94,6 @@ func TestAllianceSelection(t *testing.T) {
 		// Check that the initial lineup is populated correctly.
 		assert.Equal(t, 102, alliances[0].Lineup[0])
 		assert.Equal(t, 101, alliances[0].Lineup[1])
-		assert.Equal(t, 103, alliances[0].Lineup[2])
 	}
 	matches, err := web.arena.Database.GetMatchesByType(model.Playoff, false)
 	assert.Nil(t, err)
@@ -145,9 +144,7 @@ func TestAllianceSelectionErrors(t *testing.T) {
 	assert.Equal(t, 200, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), "valid start time")
 
-	// Finalize for real. Lite does not publish alliance selection data to TBA even if the old setting is present.
-	web.arena.TbaClient.BaseUrl = "fakeurl"
-	web.arena.EventSettings.TbaPublishingEnabled = true
+	// Finalize for real.
 	recorder = web.postHttpResponse("/alliance_selection/finalize", "startTime=2014-01-01 01:00:00 PM")
 	assert.Equal(t, 303, recorder.Code)
 

@@ -19,11 +19,14 @@ func TestRefereePanel(t *testing.T) {
 	recorder := web.getHttpResponse("/panels/referee")
 	assert.Equal(t, 200, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), "Referee Panel - Untitled Event - Cheesy Arena")
-	assert.Contains(t, recorder.Body.String(), "Foul Points Against")
+	assert.Contains(t, recorder.Body.String(), "Penalties Committed")
+	assert.Contains(t, recorder.Body.String(), `id="red-minorPenalties"`)
+	assert.Contains(t, recorder.Body.String(), `id="red-majorPenalties"`)
+	assert.Contains(t, recorder.Body.String(), `id="blue-minorPenalties"`)
+	assert.Contains(t, recorder.Body.String(), `id="blue-majorPenalties"`)
 	assert.Contains(t, recorder.Body.String(), "Commit & Post")
 	assert.Contains(t, recorder.Body.String(), "Scores not committed")
-	assert.NotContains(t, recorder.Body.String(), `id="redFoulPointsAgainst" type="number" min="0" step="1" value="0" disabled`)
-	assert.NotContains(t, recorder.Body.String(), `id="blueFoulPointsAgainst" type="number" min="0" step="1" value="0" disabled`)
+	assert.NotContains(t, recorder.Body.String(), "Foul Points Against")
 	assert.NotContains(t, recorder.Body.String(), "Tower")
 }
 
@@ -42,20 +45,51 @@ func TestRefereePanelWebsocket(t *testing.T) {
 	readWebsocketType(t, ws, "realtimeScore")
 	readWebsocketType(t, ws, "scoringStatus")
 
-	ws.Write("foulPoints", struct {
-		RedFoulPointsAgainst  int
-		BlueFoulPointsAgainst int
-	}{5, 7})
+	ws.Write("penalties", struct {
+		RedMinorPenalties  int
+		RedMajorPenalties  int
+		BlueMinorPenalties int
+		BlueMajorPenalties int
+	}{5, 1, 7, 2})
 	readWebsocketType(t, ws, "realtimeScore")
-	assert.Equal(t, 5, web.arena.RedRealtimeScore.CurrentScore.FoulPointsAgainst)
-	assert.Equal(t, 7, web.arena.BlueRealtimeScore.CurrentScore.FoulPointsAgainst)
+	assert.Equal(t, 5, web.arena.RedRealtimeScore.CurrentScore.MinorPenalties)
+	assert.Equal(t, 1, web.arena.RedRealtimeScore.CurrentScore.MajorPenalties)
+	assert.Equal(t, 7, web.arena.BlueRealtimeScore.CurrentScore.MinorPenalties)
+	assert.Equal(t, 2, web.arena.BlueRealtimeScore.CurrentScore.MajorPenalties)
 
-	ws.Write("foulPointsAgainst", struct {
-		Alliance string
-		Points   int
-	}{"blue", 11})
+	// Negative absolute counts are clamped to zero.
+	ws.Write("penalties", struct {
+		RedMinorPenalties  int
+		RedMajorPenalties  int
+		BlueMinorPenalties int
+		BlueMajorPenalties int
+	}{-1, 1, 7, 2})
 	readWebsocketType(t, ws, "realtimeScore")
-	assert.Equal(t, 11, web.arena.BlueRealtimeScore.CurrentScore.FoulPointsAgainst)
+	assert.Equal(t, 0, web.arena.RedRealtimeScore.CurrentScore.MinorPenalties)
+
+	ws.Write("addPenalty", struct {
+		Alliance string
+		Tier     string
+		Delta    int
+	}{"blue", "minor", 3})
+	readWebsocketType(t, ws, "realtimeScore")
+	assert.Equal(t, 10, web.arena.BlueRealtimeScore.CurrentScore.MinorPenalties)
+
+	// Decrementing past zero is clamped.
+	ws.Write("addPenalty", struct {
+		Alliance string
+		Tier     string
+		Delta    int
+	}{"blue", "major", -5})
+	readWebsocketType(t, ws, "realtimeScore")
+	assert.Equal(t, 0, web.arena.BlueRealtimeScore.CurrentScore.MajorPenalties)
+
+	ws.Write("addPenalty", struct {
+		Alliance string
+		Tier     string
+		Delta    int
+	}{"red", "bogus", 1})
+	assert.Contains(t, readWebsocketError(t, ws), "Invalid penalty tier 'bogus'.")
 
 	ws.Write("card", struct {
 		Alliance string
@@ -68,7 +102,6 @@ func TestRefereePanelWebsocket(t *testing.T) {
 	web.arena.CurrentMatch.Type = model.Playoff
 	web.arena.CurrentMatch.Blue1 = 1679
 	web.arena.CurrentMatch.Blue2 = 1680
-	web.arena.CurrentMatch.Blue3 = 1681
 	ws.Write("card", struct {
 		Alliance string
 		TeamId   int
@@ -77,7 +110,6 @@ func TestRefereePanelWebsocket(t *testing.T) {
 	readWebsocketType(t, ws, "realtimeScore")
 	assert.Equal(t, "red", web.arena.BlueRealtimeScore.Cards["1679"])
 	assert.Equal(t, "red", web.arena.BlueRealtimeScore.Cards["1680"])
-	assert.Equal(t, "red", web.arena.BlueRealtimeScore.Cards["1681"])
 
 	assert.False(t, web.arena.RedRealtimeScore.FoulsCommitted)
 	assert.False(t, web.arena.BlueRealtimeScore.FoulsCommitted)
@@ -92,8 +124,11 @@ func TestRefereePanelWebsocketCommitAndPost(t *testing.T) {
 	web := setupTestWeb(t)
 	web.arena.CurrentMatch = &model.Match{Type: model.Test}
 	web.arena.MatchState = field.PostMatch
-	web.arena.RedRealtimeScore.CurrentScore = game.Score{AutoPoints: 1, TeleopPoints: 2, PostMatchPoints: 3}
-	web.arena.BlueRealtimeScore.CurrentScore = game.Score{AutoPoints: 4, TeleopPoints: 5, PostMatchPoints: 6}
+	// Red scores 5 + 7 + 5 = 17; blue scores 7 + 10 + 25 = 42.
+	redScore := game.Score{FactoryParks: 1, TeleopCrops: 1, BarnParks: 1}
+	blueScore := game.Score{AutoCrops: 1, CityLimitsProducts: 1, BarnHangs: 1}
+	web.arena.RedRealtimeScore.CurrentScore = redScore
+	web.arena.BlueRealtimeScore.CurrentScore = blueScore
 
 	server, wsUrl := web.startTestServer()
 	defer server.Close()
@@ -105,8 +140,8 @@ func TestRefereePanelWebsocketCommitAndPost(t *testing.T) {
 
 	ws.Write("commitAndPost", nil)
 	readWebsocketType(t, ws, "scoringStatus")
-	assert.Equal(t, 6, web.arena.SavedMatchResult.RedScoreSummary().Score)
-	assert.Equal(t, 15, web.arena.SavedMatchResult.BlueScoreSummary().Score)
-	assert.True(t, web.arena.SavedMatchResult.RedScore.Equals(&game.Score{AutoPoints: 1, TeleopPoints: 2, PostMatchPoints: 3}))
-	assert.True(t, web.arena.SavedMatchResult.BlueScore.Equals(&game.Score{AutoPoints: 4, TeleopPoints: 5, PostMatchPoints: 6}))
+	assert.Equal(t, 17, web.arena.SavedMatchResult.RedScoreSummary().Score)
+	assert.Equal(t, 42, web.arena.SavedMatchResult.BlueScoreSummary().Score)
+	assert.True(t, web.arena.SavedMatchResult.RedScore.Equals(&redScore))
+	assert.True(t, web.arena.SavedMatchResult.BlueScore.Equals(&blueScore))
 }

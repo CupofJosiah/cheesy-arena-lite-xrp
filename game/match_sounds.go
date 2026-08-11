@@ -5,6 +5,10 @@
 
 package game
 
+// Length of static/audio/countdown.wav, rounded up. The pause between autonomous and the driver-controlled period
+// must be at least this long or the teleop horn will cut the countdown off. Update this if the clip is re-recorded.
+const countdownDurationSec = 5.5
+
 type MatchSound struct {
 	Name          string
 	FileExtension string
@@ -48,7 +52,10 @@ func UpdateMatchSounds() {
 			0,
 		},
 		{
-			"end",
+			// "Drivers, pick up your controllers. Three. Two. One." Doubles as the end-of-autonomous signal, since
+			// G02 keeps hands off the controls only until the driver-controlled period begins. The clip runs about
+			// 5.4 seconds, so PauseDurationSec must be at least 6 for it to finish before the teleop horn.
+			"countdown",
 			"wav",
 			float64(MatchTiming.AutoDurationSec),
 		},

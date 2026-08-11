@@ -24,24 +24,33 @@ func TestMatchPlay(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "Scoring")
 }
 
-func TestCommitMatchGenericScores(t *testing.T) {
+func TestCommitMatchScores(t *testing.T) {
 	web := setupTestWeb(t)
 
-	match := &model.Match{Type: model.Qualification, Red1: 101, Red2: 102, Red3: 103, Blue1: 104, Blue2: 105, Blue3: 106}
+	match := &model.Match{Type: model.Qualification, Red1: 101, Red2: 102, Blue1: 104, Blue2: 105}
 	assert.Nil(t, web.arena.Database.CreateMatch(match))
 	matchResult := &model.MatchResult{
 		MatchId: match.Id,
 		RedScore: &game.Score{
-			AutoPoints:        3,
-			TeleopPoints:      7,
-			PostMatchPoints:   2,
-			FoulPointsAgainst: 1,
+			// Auto 24, teleop 46, endgame 30; concedes 10 penalty points to blue.
+			FactoryParks:       1,
+			AutoCrops:          2,
+			SilosDumped:        1,
+			TeleopCrops:        3,
+			CityLimitsProducts: 1,
+			CityCenterProducts: 1,
+			BarnParks:          1,
+			BarnHangs:          1,
+			MinorPenalties:     1,
 		},
 		BlueScore: &game.Score{
-			AutoPoints:        4,
-			TeleopPoints:      5,
-			PostMatchPoints:   1,
-			FoulPointsAgainst: 6,
+			// Auto 17, teleop 34, endgame 10; concedes 25 penalty points to red.
+			FactoryParks:       2,
+			AutoCrops:          1,
+			TeleopCrops:        2,
+			CityLimitsProducts: 2,
+			BarnParks:          2,
+			MajorPenalties:     1,
 		},
 		RedCards:  map[string]string{},
 		BlueCards: map[string]string{},
@@ -56,8 +65,8 @@ func TestCommitMatchGenericScores(t *testing.T) {
 	storedResult, err := web.arena.Database.GetMatchResultForMatch(match.Id)
 	assert.Nil(t, err)
 	assert.Equal(t, matchResult, storedResult)
-	assert.Equal(t, 18, storedResult.RedScoreSummary().Score)
-	assert.Equal(t, 11, storedResult.BlueScoreSummary().Score)
+	assert.Equal(t, 125, storedResult.RedScoreSummary().Score)
+	assert.Equal(t, 71, storedResult.BlueScoreSummary().Score)
 }
 
 func TestCommitPlayoffDq(t *testing.T) {
@@ -75,8 +84,8 @@ func TestCommitPlayoffDq(t *testing.T) {
 	matchResult := model.NewMatchResult()
 	matchResult.MatchId = match.Id
 	matchResult.MatchType = match.Type
-	matchResult.RedScore.AutoPoints = 20
-	matchResult.BlueScore.AutoPoints = 1
+	matchResult.RedScore.FactoryParks = 4
+	matchResult.BlueScore.AutoCrops = 1
 	matchResult.RedCards = map[string]string{"1": "dq"}
 
 	assert.Nil(t, web.commitMatchScore(match, matchResult, true))
@@ -87,12 +96,13 @@ func TestCommitPlayoffDq(t *testing.T) {
 	assert.Equal(t, 0, matchResult.RedScoreSummary().Score)
 }
 
-func TestMatchPlayWebsocketCommitCurrentGenericScore(t *testing.T) {
+func TestMatchPlayWebsocketCommitCurrentScore(t *testing.T) {
 	web := setupTestWeb(t)
 	web.arena.CurrentMatch = &model.Match{Type: model.Test}
 	web.arena.MatchState = field.PostMatch
-	web.arena.RedRealtimeScore.CurrentScore = game.Score{AutoPoints: 1, TeleopPoints: 2, PostMatchPoints: 3}
-	web.arena.BlueRealtimeScore.CurrentScore = game.Score{AutoPoints: 4, TeleopPoints: 5, PostMatchPoints: 6}
+	// Red scores 5 + 7 + 5 = 17; blue scores 7 + 10 + 25 = 42.
+	web.arena.RedRealtimeScore.CurrentScore = game.Score{FactoryParks: 1, TeleopCrops: 1, BarnParks: 1}
+	web.arena.BlueRealtimeScore.CurrentScore = game.Score{AutoCrops: 1, CityLimitsProducts: 1, BarnHangs: 1}
 
 	server, wsUrl := web.startTestServer()
 	defer server.Close()
@@ -105,6 +115,6 @@ func TestMatchPlayWebsocketCommitCurrentGenericScore(t *testing.T) {
 	ws.Write("commitAndPost", nil)
 	messages := readWebsocketMultiple(t, ws, 6)
 	assert.NotNil(t, messages["scorePosted"])
-	assert.Equal(t, 6, web.arena.SavedMatchResult.RedScoreSummary().Score)
-	assert.Equal(t, 15, web.arena.SavedMatchResult.BlueScoreSummary().Score)
+	assert.Equal(t, 17, web.arena.SavedMatchResult.RedScoreSummary().Score)
+	assert.Equal(t, 42, web.arena.SavedMatchResult.BlueScoreSummary().Score)
 }
