@@ -43,14 +43,10 @@ type Match struct {
 	Red1IsSurrogate     bool
 	Red2                int
 	Red2IsSurrogate     bool
-	Red3                int
-	Red3IsSurrogate     bool
 	Blue1               int
 	Blue1IsSurrogate    bool
 	Blue2               int
 	Blue2IsSurrogate    bool
-	Blue3               int
-	Blue3IsSurrogate    bool
 	StartedAt           time.Time
 	ScoreCommittedAt    time.Time
 	FieldReadyAt        time.Time
@@ -150,9 +146,24 @@ func (match *Match) ShouldUpdatePlayoffMatches() bool {
 	return match.Type == Playoff
 }
 
+// Returns the team IDs in the match, red alliance first, in alliance station order.
+func (match *Match) TeamIds() [game.TeamsPerMatch]int {
+	return [game.TeamsPerMatch]int{match.Red1, match.Red2, match.Blue1, match.Blue2}
+}
+
+// Returns the team ID assigned to each alliance station, keyed by station ID.
+func (match *Match) TeamIdsByStation() map[string]int {
+	return map[string]int{
+		"R1": match.Red1,
+		"R2": match.Red2,
+		"B1": match.Blue1,
+		"B2": match.Blue2,
+	}
+}
+
 // Returns true if the teams currently set in each station match the passed lineup.
-func (match *Match) IsLineupEqual(red1, red2, red3, blue1, blue2, blue3 int) bool {
-	return [6]int{match.Red1, match.Red2, match.Red3, match.Blue1, match.Blue2, match.Blue3} == [6]int{red1, red2, red3, blue1, blue2, blue3}
+func (match *Match) IsLineupEqual(red1, red2, blue1, blue2 int) bool {
+	return match.TeamIds() == [game.TeamsPerMatch]int{red1, red2, blue1, blue2}
 }
 
 // Returns the enum equivalent of the given match type string.

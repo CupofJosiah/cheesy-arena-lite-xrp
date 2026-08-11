@@ -6,15 +6,12 @@
 package web
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/dchest/uniuri"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const wpaKeyLength = 8
@@ -54,12 +51,6 @@ func (web *Web) teamsPostHandler(w http.ResponseWriter, r *http.Request) {
 	progressIncrement := 95.0 / float64(len(teamNumbers))
 	for _, teamNumber := range teamNumbers {
 		team := model.Team{Id: teamNumber}
-		if web.arena.EventSettings.TbaDownloadEnabled {
-			if err := web.populateOfficialTeamInfo(&team); err != nil {
-				handleWebErr(w, err)
-				return
-			}
-		}
 		if err := web.arena.Database.CreateTeam(&team); err != nil {
 			handleWebErr(w, err)
 			return
@@ -70,38 +61,6 @@ func (web *Web) teamsPostHandler(w http.ResponseWriter, r *http.Request) {
 	progressPercentage = 100
 
 	http.Redirect(w, r, "/setup/teams", 303)
-}
-
-// Re-downloads the data for all teams from TBA and overwrites any local edits.
-func (web *Web) teamsRefreshHandler(w http.ResponseWriter, r *http.Request) {
-	if !web.userIsAdmin(w, r) {
-		return
-	}
-
-	teams, err := web.arena.Database.GetAllTeams()
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-
-	progInc := 95.00 / float64(len(teams))
-
-	for _, team := range teams {
-		if err = web.populateOfficialTeamInfo(&team); err != nil {
-			handleWebErr(w, err)
-			return
-		}
-		if err = web.arena.Database.UpdateTeam(&team); err != nil {
-			handleWebErr(w, err)
-			return
-		}
-
-		progressPercentage += progInc
-	}
-
-	progressPercentage = 100
-	http.Redirect(w, r, "/setup/teams", 303)
-	progressPercentage = 5
 }
 
 // Clears the team list.
@@ -182,13 +141,6 @@ func (web *Web) teamEditPostHandler(w http.ResponseWriter, r *http.Request) {
 	team.RookieYear, _ = strconv.Atoi(r.PostFormValue("rookieYear"))
 	team.RobotName = r.PostFormValue("robotName")
 	team.Accomplishments = r.PostFormValue("accomplishments")
-	if web.arena.EventSettings.NetworkSecurityEnabled {
-		team.WpaKey = r.PostFormValue("wpaKey")
-		if len(team.WpaKey) < 8 || len(team.WpaKey) > 63 {
-			handleWebErr(w, fmt.Errorf("WPA key must be between 8 and 63 characters."))
-			return
-		}
-	}
 	team.HasConnected = r.PostFormValue("hasConnected") == "on"
 	err = web.arena.Database.UpdateTeam(team)
 	if err != nil {
@@ -296,56 +248,4 @@ func (web *Web) canModifyTeamList() bool {
 		return false
 	}
 	return true
-}
-
-// Returns the data for the given team number.
-func (web *Web) populateOfficialTeamInfo(team *model.Team) error {
-	tbaTeam, err := web.arena.TbaClient.GetTeam(team.Id)
-	if err != nil {
-		return err
-	}
-
-	// Check if the result is valid. If a team is not found, it will just not have its detail fields filled out.
-	if tbaTeam.TeamNumber == 0 {
-		return nil
-	}
-
-	team.Name = tbaTeam.Name
-	team.Nickname = tbaTeam.Nickname
-	team.City = tbaTeam.City
-	team.StateProv = tbaTeam.StateProv
-	team.Country = tbaTeam.Country
-	schoolNameRe := regexp.MustCompile("^.*\\S&(\\S.*?$)")
-	matches := schoolNameRe.FindStringSubmatch(tbaTeam.Name)
-	if len(matches) > 0 {
-		team.SchoolName = matches[1]
-	}
-	team.RookieYear = tbaTeam.RookieYear
-	team.RobotName, err = web.arena.TbaClient.GetRobotName(team.Id, time.Now().Year())
-	if err != nil {
-		return err
-	}
-
-	// Generate string of recent awards in reverse chronological order.
-	recentAwards, err := web.arena.TbaClient.GetTeamAwards(team.Id)
-	if err != nil {
-		return err
-	}
-	var accomplishmentsBuffer bytes.Buffer
-	for i := len(recentAwards) - 1; i >= 0; i-- {
-		award := recentAwards[i]
-		if time.Now().Year()-award.Year <= 1 {
-			accomplishmentsBuffer.WriteString(
-				fmt.Sprintf("<p>%d %s - %s</p>", award.Year, award.EventName, award.Name),
-			)
-		}
-	}
-	team.Accomplishments = accomplishmentsBuffer.String()
-
-	// Download and store the team's avatar; if there isn't one, ignore the error.
-	if err = web.arena.TbaClient.DownloadTeamAvatar(team.Id, time.Now().Year()); err != nil {
-		return err
-	}
-
-	return nil
 }

@@ -6,6 +6,7 @@
 package tournament
 
 import (
+	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"testing"
 )
@@ -15,7 +16,7 @@ func CreateTestAlliances(database *model.Database, allianceCount int) {
 		alliance := model.Alliance{
 			Id:      i,
 			TeamIds: []int{100*i + 1, 100*i + 2, 100*i + 3, 100*i + 4},
-			Lineup:  [3]int{100*i + 2, 100*i + 1, 100*i + 3},
+			Lineup:  [game.TeamsPerAlliance]int{100*i + 2, 100*i + 1},
 		}
 		database.CreateAlliance(&alliance)
 	}

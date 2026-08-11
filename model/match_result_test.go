@@ -27,8 +27,8 @@ func TestMatchResultCrud(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, matchResult, matchResult2)
 
-	matchResult.BlueScore.PostMatchPoints = 12
-	matchResult.BlueScore.FoulPointsAgainst = 3
+	matchResult.BlueScore.BarnHangs = 12
+	matchResult.BlueScore.MinorPenalties = 3
 	assert.Nil(t, db.UpdateMatchResult(matchResult))
 	matchResult2, err = db.GetMatchResultForMatch(254)
 	assert.Nil(t, err)

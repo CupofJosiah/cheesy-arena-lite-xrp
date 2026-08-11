@@ -36,7 +36,7 @@ func TestBuildJudgingSchedule(t *testing.T) {
 	assert.Contains(t, err.Error(), "no teams present")
 
 	// Generate teams to test against.
-	for i := 1; i <= 24; i++ {
+	for i := 1; i <= 12; i++ {
 		assert.Nil(t, database.CreateTeam(&model.Team{Id: i}))
 	}
 	teams, err := database.GetAllTeams()
@@ -74,7 +74,7 @@ func TestBuildJudgingSchedule(t *testing.T) {
 	assert.Nil(t, err)
 	slots, err := database.GetAllJudgingSlots()
 	assert.Nil(t, err)
-	assert.Equal(t, 24, len(slots))
+	assert.Equal(t, 12, len(slots))
 	judgeTeamCounts := make(map[int]int)
 	for _, slot := range slots {
 		assert.NotEqual(t, 0, slot.TeamId)
@@ -103,9 +103,9 @@ func TestBuildJudgingSchedule(t *testing.T) {
 		}
 	}
 	if assert.Equal(t, 3, len(judgeTeamCounts)) {
-		assert.Equal(t, 8, judgeTeamCounts[1])
-		assert.Equal(t, 8, judgeTeamCounts[2])
-		assert.Equal(t, 8, judgeTeamCounts[3])
+		assert.Equal(t, 4, judgeTeamCounts[1])
+		assert.Equal(t, 4, judgeTeamCounts[2])
+		assert.Equal(t, 4, judgeTeamCounts[3])
 	}
 }
 
@@ -140,10 +140,8 @@ func TestBuildJudgingScheduleMissingTeamMatches(t *testing.T) {
 			Time:      scheduleBlocks[0].StartTime.Add(time.Duration(i*scheduleBlocks[0].MatchSpacingSec) * time.Second),
 			Red1:      teams[0].Id,
 			Red2:      teams[1].Id,
-			Red3:      teams[2].Id,
 			Blue1:     teams[0].Id,
 			Blue2:     teams[1].Id,
-			Blue3:     teams[2].Id,
 		}
 		assert.Nil(t, database.CreateMatch(&match))
 	}
@@ -219,10 +217,8 @@ func TestBuildJudgingScheduleAllowsEndDuringBreak(t *testing.T) {
 			Time:      scheduleBlocks[0].StartTime,
 			Red1:      1,
 			Red2:      1,
-			Red3:      1,
 			Blue1:     1,
 			Blue2:     1,
-			Blue3:     1,
 		},
 		{
 			Type:      model.Qualification,
@@ -230,10 +226,8 @@ func TestBuildJudgingScheduleAllowsEndDuringBreak(t *testing.T) {
 			Time:      scheduleBlocks[0].StartTime.Add(10 * time.Minute),
 			Red1:      1,
 			Red2:      1,
-			Red3:      1,
 			Blue1:     1,
 			Blue2:     1,
-			Blue3:     1,
 		},
 		{
 			Type:      model.Qualification,
@@ -241,10 +235,8 @@ func TestBuildJudgingScheduleAllowsEndDuringBreak(t *testing.T) {
 			Time:      scheduleBlocks[1].StartTime,
 			Red1:      1,
 			Red2:      1,
-			Red3:      1,
 			Blue1:     1,
 			Blue2:     1,
-			Blue3:     1,
 		},
 	}
 	for _, match := range matches {

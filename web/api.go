@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/Team254/cheesy-arena-lite/partner"
 	"github.com/Team254/cheesy-arena-lite/playoff"
 	"github.com/Team254/cheesy-arena-lite/websocket"
 	"io"
@@ -18,6 +17,9 @@ import (
 	"os"
 	"strconv"
 )
+
+// Directory holding per-team avatar images, served by the team avatar endpoint.
+const avatarsDir = "static/img/avatars"
 
 type MatchResultWithSummary struct {
 	model.MatchResult
@@ -48,11 +50,22 @@ type allianceMatchup struct {
 	IsComplete         bool
 }
 
+// Counts of each scoring element, along with the point totals they add up to.
 type apiAllianceScore struct {
-	Auto              int `json:"auto"`
-	Teleop            int `json:"teleop"`
-	PostMatch         int `json:"postMatch"`
-	FoulPointsAgainst int `json:"foulPointsAgainst"`
+	FactoryParks       int `json:"factoryParks"`
+	AutoCrops          int `json:"autoCrops"`
+	SilosDumped        int `json:"silosDumped"`
+	TeleopCrops        int `json:"teleopCrops"`
+	CityLimitsProducts int `json:"cityLimitsProducts"`
+	CityCenterProducts int `json:"cityCenterProducts"`
+	BarnParks          int `json:"barnParks"`
+	BarnHangs          int `json:"barnHangs"`
+	MinorPenalties     int `json:"minorPenalties"`
+	MajorPenalties     int `json:"majorPenalties"`
+	AutoPoints         int `json:"autoPoints"`
+	TeleopPoints       int `json:"teleopPoints"`
+	EndgamePoints      int `json:"endgamePoints"`
+	PenaltyPoints      int `json:"penaltyPoints"`
 }
 
 type apiScore struct {
@@ -61,10 +74,16 @@ type apiScore struct {
 }
 
 type apiAllianceScorePatch struct {
-	Auto              *int `json:"auto"`
-	Teleop            *int `json:"teleop"`
-	PostMatch         *int `json:"postMatch"`
-	FoulPointsAgainst *int `json:"foulPointsAgainst"`
+	FactoryParks       *int `json:"factoryParks"`
+	AutoCrops          *int `json:"autoCrops"`
+	SilosDumped        *int `json:"silosDumped"`
+	TeleopCrops        *int `json:"teleopCrops"`
+	CityLimitsProducts *int `json:"cityLimitsProducts"`
+	CityCenterProducts *int `json:"cityCenterProducts"`
+	BarnParks          *int `json:"barnParks"`
+	BarnHangs          *int `json:"barnHangs"`
+	MinorPenalties     *int `json:"minorPenalties"`
+	MajorPenalties     *int `json:"majorPenalties"`
 }
 
 type apiScorePatch struct {
@@ -72,22 +91,43 @@ type apiScorePatch struct {
 	Blue apiAllianceScorePatch `json:"blue"`
 }
 
+func newApiAllianceScore(score *game.Score) apiAllianceScore {
+	return apiAllianceScore{
+		FactoryParks:       score.FactoryParks,
+		AutoCrops:          score.AutoCrops,
+		SilosDumped:        score.SilosDumped,
+		TeleopCrops:        score.TeleopCrops,
+		CityLimitsProducts: score.CityLimitsProducts,
+		CityCenterProducts: score.CityCenterProducts,
+		BarnParks:          score.BarnParks,
+		BarnHangs:          score.BarnHangs,
+		MinorPenalties:     score.MinorPenalties,
+		MajorPenalties:     score.MajorPenalties,
+		AutoPoints:         score.AutoPoints(),
+		TeleopPoints:       score.TeleopPoints(),
+		EndgamePoints:      score.EndgamePoints(),
+		PenaltyPoints:      score.PenaltyPoints(),
+	}
+}
+
+// Overwrites the score with the given element counts, ignoring any negative values.
+func applyApiAllianceScore(score *game.Score, apiScore apiAllianceScore) {
+	score.FactoryParks = max(apiScore.FactoryParks, 0)
+	score.AutoCrops = max(apiScore.AutoCrops, 0)
+	score.SilosDumped = max(apiScore.SilosDumped, 0)
+	score.TeleopCrops = max(apiScore.TeleopCrops, 0)
+	score.CityLimitsProducts = max(apiScore.CityLimitsProducts, 0)
+	score.CityCenterProducts = max(apiScore.CityCenterProducts, 0)
+	score.BarnParks = max(apiScore.BarnParks, 0)
+	score.BarnHangs = max(apiScore.BarnHangs, 0)
+	score.MinorPenalties = max(apiScore.MinorPenalties, 0)
+	score.MajorPenalties = max(apiScore.MajorPenalties, 0)
+}
+
 func (web *Web) currentApiScore() apiScore {
-	redScore := web.arena.RedRealtimeScore.CurrentScore
-	blueScore := web.arena.BlueRealtimeScore.CurrentScore
 	return apiScore{
-		Red: apiAllianceScore{
-			Auto:              redScore.AutoPoints,
-			Teleop:            redScore.TeleopPoints,
-			PostMatch:         redScore.PostMatchPoints,
-			FoulPointsAgainst: redScore.FoulPointsAgainst,
-		},
-		Blue: apiAllianceScore{
-			Auto:              blueScore.AutoPoints,
-			Teleop:            blueScore.TeleopPoints,
-			PostMatch:         blueScore.PostMatchPoints,
-			FoulPointsAgainst: blueScore.FoulPointsAgainst,
-		},
+		Red:  newApiAllianceScore(&web.arena.RedRealtimeScore.CurrentScore),
+		Blue: newApiAllianceScore(&web.arena.BlueRealtimeScore.CurrentScore),
 	}
 }
 
@@ -100,14 +140,8 @@ func (web *Web) scoresApiHandler(w http.ResponseWriter, r *http.Request) {
 			handleWebErr(w, err)
 			return
 		}
-		web.arena.RedRealtimeScore.CurrentScore.AutoPoints = score.Red.Auto
-		web.arena.RedRealtimeScore.CurrentScore.TeleopPoints = score.Red.Teleop
-		web.arena.RedRealtimeScore.CurrentScore.PostMatchPoints = score.Red.PostMatch
-		web.arena.RedRealtimeScore.CurrentScore.FoulPointsAgainst = score.Red.FoulPointsAgainst
-		web.arena.BlueRealtimeScore.CurrentScore.AutoPoints = score.Blue.Auto
-		web.arena.BlueRealtimeScore.CurrentScore.TeleopPoints = score.Blue.Teleop
-		web.arena.BlueRealtimeScore.CurrentScore.PostMatchPoints = score.Blue.PostMatch
-		web.arena.BlueRealtimeScore.CurrentScore.FoulPointsAgainst = score.Blue.FoulPointsAgainst
+		applyApiAllianceScore(&web.arena.RedRealtimeScore.CurrentScore, score.Red)
+		applyApiAllianceScore(&web.arena.BlueRealtimeScore.CurrentScore, score.Blue)
 		web.arena.RealtimeScoreNotifier.Notify()
 	case http.MethodPatch:
 		var patch apiScorePatch
@@ -130,18 +164,26 @@ func (web *Web) scoresApiHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Adds the given deltas to the score, clamping each element at zero.
 func applyScorePatch(score *game.Score, patch apiAllianceScorePatch) {
-	if patch.Auto != nil {
-		score.AutoPoints += *patch.Auto
-	}
-	if patch.Teleop != nil {
-		score.TeleopPoints += *patch.Teleop
-	}
-	if patch.PostMatch != nil {
-		score.PostMatchPoints += *patch.PostMatch
-	}
-	if patch.FoulPointsAgainst != nil {
-		score.FoulPointsAgainst += *patch.FoulPointsAgainst
+	for _, field := range []struct {
+		delta *int
+		value *int
+	}{
+		{patch.FactoryParks, &score.FactoryParks},
+		{patch.AutoCrops, &score.AutoCrops},
+		{patch.SilosDumped, &score.SilosDumped},
+		{patch.TeleopCrops, &score.TeleopCrops},
+		{patch.CityLimitsProducts, &score.CityLimitsProducts},
+		{patch.CityCenterProducts, &score.CityCenterProducts},
+		{patch.BarnParks, &score.BarnParks},
+		{patch.BarnHangs, &score.BarnHangs},
+		{patch.MinorPenalties, &score.MinorPenalties},
+		{patch.MajorPenalties, &score.MajorPenalties},
+	} {
+		if field.delta != nil {
+			*field.value = max(*field.value+*field.delta, 0)
+		}
 	}
 }
 
@@ -323,9 +365,9 @@ func (web *Web) teamAvatarsApiHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	avatarPath := fmt.Sprintf("%s/%d.png", partner.AvatarsDir, teamId)
+	avatarPath := fmt.Sprintf("%s/%d.png", avatarsDir, teamId)
 	if _, err := os.Stat(avatarPath); os.IsNotExist(err) {
-		avatarPath = fmt.Sprintf("%s/0.png", partner.AvatarsDir)
+		avatarPath = fmt.Sprintf("%s/0.png", avatarsDir)
 	}
 
 	http.ServeFile(w, r, avatarPath)

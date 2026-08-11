@@ -5,7 +5,6 @@
   {{end}}
   {{template "team" dict "alliance" "red" "team" (index .Teams "R1") "rankings" .Rankings}}
   {{template "team" dict "alliance" "red" "team" (index .Teams "R2") "rankings" .Rankings}}
-  {{template "team" dict "alliance" "red" "team" (index .Teams "R3") "rankings" .Rankings}}
   {{range $team := .RedOffFieldTeams}}
   {{template "team" dict "alliance" "red" "team" $team "rankings" $.Rankings "isOffField" true}}
   {{end}}
@@ -16,7 +15,6 @@
   {{end}}
   {{template "team" dict "alliance" "blue" "team" (index .Teams "B1") "rankings" .Rankings}}
   {{template "team" dict "alliance" "blue" "team" (index .Teams "B2") "rankings" .Rankings}}
-  {{template "team" dict "alliance" "blue" "team" (index .Teams "B3") "rankings" .Rankings}}
   {{range $team := .BlueOffFieldTeams}}
   {{template "team" dict "alliance" "blue" "team" $team "rankings" $.Rankings "isOffField" true}}
   {{end}}

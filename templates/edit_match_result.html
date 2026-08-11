@@ -35,13 +35,13 @@ UI for manually editing the result for a match.
   matchResult = jQuery.parseJSON('{{.MatchResultJson}}');
   allianceResults["red"] = {
     alliance: "red",
-    teams: [{{.Match.Red1}}, {{.Match.Red2}}, {{.Match.Red3}}],
+    teams: [{{.Match.Red1}}, {{.Match.Red2}}],
     score: matchResult.RedScore,
     cards: matchResult.RedCards,
   };
   allianceResults["blue"] = {
     alliance: "blue",
-    teams: [{{.Match.Blue1}}, {{.Match.Blue2}}, {{.Match.Blue3}}],
+    teams: [{{.Match.Blue1}}, {{.Match.Blue2}}],
     score: matchResult.BlueScore,
     cards: matchResult.BlueCards,
   };
@@ -55,11 +55,26 @@ UI for manually editing the result for a match.
 <div id="{{.Alliance}}Score" data-alliance="{{.Alliance}}">
   <div class="card card-body bg-{{.Alliance}} mb-3">
     <fieldset>
-      <legend>Score</legend>
-      {{template "scoreInput" dict "alliance" .Alliance "field" "AutoPoints" "label" "Auto"}}
-      {{template "scoreInput" dict "alliance" .Alliance "field" "TeleopPoints" "label" "Teleop"}}
-      {{template "scoreInput" dict "alliance" .Alliance "field" "PostMatchPoints" "label" "Endgame"}}
-      {{template "scoreInput" dict "alliance" .Alliance "field" "FoulPointsAgainst" "label" "Foul Points Against"}}
+      <legend>Autonomous</legend>
+      {{template "scoreInput" dict "alliance" .Alliance "field" "FactoryParks" "label" "Parked in Factory (5)"}}
+      {{template "scoreInput" dict "alliance" .Alliance "field" "AutoCrops" "label" "Crops in Factory (7)"}}
+      {{template "scoreInput" dict "alliance" .Alliance "field" "SilosDumped" "label" "Silos Dumped (5)"}}
+    </fieldset>
+    <fieldset>
+      <legend>Driver Controlled</legend>
+      {{template "scoreInput" dict "alliance" .Alliance "field" "TeleopCrops" "label" "Crops in Factory (7)"}}
+      {{template "scoreInput" dict "alliance" .Alliance "field" "CityLimitsProducts" "label" "City Limits (10)"}}
+      {{template "scoreInput" dict "alliance" .Alliance "field" "CityCenterProducts" "label" "City Center (15)"}}
+    </fieldset>
+    <fieldset>
+      <legend>Endgame</legend>
+      {{template "scoreInput" dict "alliance" .Alliance "field" "BarnParks" "label" "Parked in Barn (5)"}}
+      {{template "scoreInput" dict "alliance" .Alliance "field" "BarnHangs" "label" "Hanging from Barn (25)"}}
+    </fieldset>
+    <fieldset>
+      <legend>Penalties Committed</legend>
+      {{template "scoreInput" dict "alliance" .Alliance "field" "MinorPenalties" "label" "Minor (10 to opponent)"}}
+      {{template "scoreInput" dict "alliance" .Alliance "field" "MajorPenalties" "label" "Major (25 to opponent)"}}
     </fieldset>
     <fieldset>
       <legend>Cards</legend>
@@ -83,7 +98,7 @@ UI for manually editing the result for a match.
 {{end}}
 {{define "scoreInput"}}
 <div class="row mb-3">
-  <label class="col-lg-2 control-label">{{.label}}</label>
+  <label class="col-lg-5 control-label">{{.label}}</label>
   <div class="col-lg-3">
     <input type="number" class="form-control input-sm" name="{{.alliance}}{{.field}}" min="0" step="1">
   </div>

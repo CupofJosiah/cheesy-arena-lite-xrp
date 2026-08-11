@@ -254,12 +254,10 @@ func (tournament *PlayoffTournament) UpdateMatches(database *model.Database) err
 func positionRedTeams(match *model.Match, alliance *model.Alliance) {
 	match.Red1 = alliance.Lineup[0]
 	match.Red2 = alliance.Lineup[1]
-	match.Red3 = alliance.Lineup[2]
 }
 
 // Assigns the lineup from the alliance into the blue team slots for the match.
 func positionBlueTeams(match *model.Match, alliance *model.Alliance) {
 	match.Blue1 = alliance.Lineup[0]
 	match.Blue2 = alliance.Lineup[1]
-	match.Blue3 = alliance.Lineup[2]
 }

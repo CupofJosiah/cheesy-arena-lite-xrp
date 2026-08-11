@@ -24,15 +24,28 @@ $("form").on("input change", "input, select", function () {
   scheduleScoreSummaryRefresh();
 });
 
+// Element counts stored on a match result, matching the fields of game.Score.
+const scoreFields = [
+  "FactoryParks",
+  "AutoCrops",
+  "SilosDumped",
+  "TeleopCrops",
+  "CityLimitsProducts",
+  "CityCenterProducts",
+  "BarnParks",
+  "BarnHangs",
+  "MinorPenalties",
+  "MajorPenalties",
+];
+
 const renderResults = function (alliance) {
   const result = allianceResults[alliance];
   result.score = normalizeScore(result.score);
   result.cards = result.cards || {};
 
-  getInputElement(alliance, "AutoPoints").val(result.score.AutoPoints);
-  getInputElement(alliance, "TeleopPoints").val(result.score.TeleopPoints);
-  getInputElement(alliance, "PostMatchPoints").val(result.score.PostMatchPoints);
-  getInputElement(alliance, "FoulPointsAgainst").val(result.score.FoulPointsAgainst);
+  scoreFields.forEach((field) => {
+    getInputElement(alliance, field).val(result.score[field]);
+  });
   renderCards(alliance);
 };
 
@@ -43,10 +56,9 @@ const updateResults = function (alliance) {
     formData[v.name] = v.value;
   });
 
-  result.score.AutoPoints = parseFormInt(formData[`${alliance}AutoPoints`]);
-  result.score.TeleopPoints = parseFormInt(formData[`${alliance}TeleopPoints`]);
-  result.score.PostMatchPoints = parseFormInt(formData[`${alliance}PostMatchPoints`]);
-  result.score.FoulPointsAgainst = parseFormInt(formData[`${alliance}FoulPointsAgainst`]);
+  scoreFields.forEach((field) => {
+    result.score[field] = parseFormInt(formData[`${alliance}${field}`]);
+  });
 
   result.cards = {};
   $.each(result.teams, function (i, team) {
@@ -112,10 +124,9 @@ const getInputElement = function (alliance, name, value) {
 
 const normalizeScore = function (score) {
   score = score || {};
-  score.AutoPoints = parseFormInt(score.AutoPoints);
-  score.TeleopPoints = parseFormInt(score.TeleopPoints);
-  score.PostMatchPoints = parseFormInt(score.PostMatchPoints);
-  score.FoulPointsAgainst = parseFormInt(score.FoulPointsAgainst);
+  scoreFields.forEach((field) => {
+    score[field] = parseFormInt(score[field]);
+  });
   score.PlayoffDq = !!score.PlayoffDq;
   return score;
 };

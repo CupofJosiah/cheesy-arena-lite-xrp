@@ -23,16 +23,18 @@ const substituteTeams = function (team, position) {
   const teams = {
     Red1: getTeamNumber("R1"),
     Red2: getTeamNumber("R2"),
-    Red3: getTeamNumber("R3"),
     Blue1: getTeamNumber("B1"),
     Blue2: getTeamNumber("B2"),
-    Blue3: getTeamNumber("B3"),
   };
 
   websocket.send("substituteTeams", teams);
 };
 
 // Sends a websocket message to toggle the bypass status for an alliance station.
+const toggleReady = function (station) {
+  websocket.send("toggleReady", station);
+};
+
 const toggleBypass = function (station) {
   websocket.send("toggleBypass", station);
 };
@@ -129,49 +131,13 @@ const getTeamNumber = function (station) {
   return teamId ? parseInt(teamId) : 0;
 }
 
-// Handles a websocket message to update the team connection status.
+// Handles a websocket message to update the alliance station status.
 const handleArenaStatus = function (data) {
   // Update the team status view.
   $.each(data.AllianceStations, function (station, stationStatus) {
-    const wifiStatus = stationStatus.WifiStatus;
-    $("#status" + station + " .radio-status").text(wifiStatus.TeamId);
-
-    if (stationStatus.DsConn) {
-      // Format the driver station status box.
-      const dsConn = stationStatus.DsConn;
-      $("#status" + station + " .ds-status").attr("data-status-ok", dsConn.DsLinked);
-      if (dsConn.DsLinked) {
-        $("#status" + station + " .ds-status").text(wifiStatus.MBits.toFixed(2) + "Mb");
-      } else {
-        $("#status" + station + " .ds-status").text("");
-      }
-
-      // Format the robot status box.
-      const robotOkay = dsConn.BatteryVoltage > lowBatteryThreshold && dsConn.RobotLinked;
-      $("#status" + station + " .robot-status").attr("data-status-ok", robotOkay);
-      if (stationStatus.DsConn.SecondsSinceLastRobotLink > 1 && stationStatus.DsConn.SecondsSinceLastRobotLink < 1000) {
-        $("#status" + station + " .robot-status").text(stationStatus.DsConn.SecondsSinceLastRobotLink.toFixed());
-      } else {
-        $("#status" + station + " .robot-status").text(dsConn.BatteryVoltage.toFixed(1) + "V");
-      }
-    } else {
-      $("#status" + station + " .ds-status").attr("data-status-ok", "");
-      $("#status" + station + " .robot-status").attr("data-status-ok", "");
-      $("#status" + station + " .robot-status").text("");
-    }
-
-    // Format the radio status box according to whether the AP is configured with the correct SSID and the connection
-    // status of the robot radio.
-    const expectedTeamId = stationStatus.Team ? stationStatus.Team.Id : 0;
-    let radioStatus = 0;
-    if (expectedTeamId === wifiStatus.TeamId) {
-      if (wifiStatus.RadioLinked || stationStatus.DsConn?.RobotLinked) {
-        radioStatus = 2;
-      } else {
-        radioStatus = 1;
-      }
-    }
-    $(`#status${station} .radio-status`).attr("data-status-ternary", radioStatus);
+    // Format the readiness box, which the field crew toggles once a robot is staged in its Barn.
+    $("#status" + station + " .ready-status").attr("data-status-ok", stationStatus.Ready);
+    $("#status" + station + " .ready-status").text(stationStatus.Ready ? "Ready" : "Not Staged");
 
     if (stationStatus.EStop) {
       $("#status" + station + " .bypass-status").attr("data-status-ok", false);
@@ -262,22 +228,6 @@ const handleArenaStatus = function (data) {
       break;
   }
 
-  $("#accessPointStatus").attr("data-status", data.AccessPointStatus);
-  $("#switchStatus").attr("data-status", data.SwitchStatus);
-  $("#redSCCStatus").attr("data-status", data.RedSCCStatus);
-  $("#blueSCCStatus").attr("data-status", data.BlueSCCStatus);
-
-  if (data.PlcIsHealthy) {
-    $("#plcStatus").text("Connected");
-    $("#plcStatus").attr("data-ready", true);
-  } else {
-    $("#plcStatus").text("Not Connected");
-    $("#plcStatus").attr("data-ready", false);
-  }
-  $("#fieldEStop").attr("data-ready", !data.FieldEStop);
-  $.each(data.PlcArmorBlockStatuses, function (name, status) {
-    $("#plc" + name + "Status").attr("data-ready", status);
-  });
 };
 
 // Handles a websocket message to update the teams for the current match.

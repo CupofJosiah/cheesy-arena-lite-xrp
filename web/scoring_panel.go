@@ -12,18 +12,39 @@ import (
 	"net/http"
 
 	"github.com/Team254/cheesy-arena-lite/field"
+	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/Team254/cheesy-arena-lite/websocket"
 	"github.com/mitchellh/mapstructure"
 )
 
+// Element counts entered on the scoring panel for one alliance. Point values are applied server-side by game.Score.
+type scoringPanelAllianceScore struct {
+	FactoryParks       int
+	AutoCrops          int
+	SilosDumped        int
+	TeleopCrops        int
+	CityLimitsProducts int
+	CityCenterProducts int
+	BarnParks          int
+	BarnHangs          int
+}
+
 type scoringPanelScoreMessage struct {
-	RedAuto       int
-	RedTeleop     int
-	RedPostMatch  int
-	BlueAuto      int
-	BlueTeleop    int
-	BluePostMatch int
+	Red  scoringPanelAllianceScore
+	Blue scoringPanelAllianceScore
+}
+
+// Copies the entered element counts into the given score, ignoring any negative values.
+func (allianceScore *scoringPanelAllianceScore) applyTo(score *game.Score) {
+	score.FactoryParks = max(allianceScore.FactoryParks, 0)
+	score.AutoCrops = max(allianceScore.AutoCrops, 0)
+	score.SilosDumped = max(allianceScore.SilosDumped, 0)
+	score.TeleopCrops = max(allianceScore.TeleopCrops, 0)
+	score.CityLimitsProducts = max(allianceScore.CityLimitsProducts, 0)
+	score.CityCenterProducts = max(allianceScore.CityCenterProducts, 0)
+	score.BarnParks = max(allianceScore.BarnParks, 0)
+	score.BarnHangs = max(allianceScore.BarnHangs, 0)
 }
 
 // Renders the scoring interface which enables input of scores in real-time.
@@ -98,12 +119,8 @@ func (web *Web) scoringPanelWebsocketHandler(w http.ResponseWriter, r *http.Requ
 				continue
 			}
 
-			web.arena.RedRealtimeScore.CurrentScore.AutoPoints = args.RedAuto
-			web.arena.RedRealtimeScore.CurrentScore.TeleopPoints = args.RedTeleop
-			web.arena.RedRealtimeScore.CurrentScore.PostMatchPoints = args.RedPostMatch
-			web.arena.BlueRealtimeScore.CurrentScore.AutoPoints = args.BlueAuto
-			web.arena.BlueRealtimeScore.CurrentScore.TeleopPoints = args.BlueTeleop
-			web.arena.BlueRealtimeScore.CurrentScore.PostMatchPoints = args.BluePostMatch
+			args.Red.applyTo(&web.arena.RedRealtimeScore.CurrentScore)
+			args.Blue.applyTo(&web.arena.BlueRealtimeScore.CurrentScore)
 			web.arena.RealtimeScoreNotifier.Notify()
 		default:
 			writeWebsocketError(ws, fmt.Sprintf("Invalid message type '%s'.", command))

@@ -20,11 +20,9 @@ import (
 type TeamSigns struct {
 	Red1      TeamSign
 	Red2      TeamSign
-	Red3      TeamSign
 	RedTimer  TeamSign
 	Blue1     TeamSign
 	Blue2     TeamSign
-	Blue3     TeamSign
 	BlueTimer TeamSign
 }
 
@@ -112,22 +110,18 @@ func (signs *TeamSigns) Update(arena *Arena) {
 
 	signs.Red1.update(arena, "R1", true, countdown, redInMatchTeamRearText)
 	signs.Red2.update(arena, "R2", true, countdown, redInMatchTeamRearText)
-	signs.Red3.update(arena, "R3", true, countdown, redInMatchTeamRearText)
 	signs.RedTimer.update(arena, "", true, countdown, redInMatchTimerRearText)
 	signs.Blue1.update(arena, "B1", false, countdown, blueInMatchTeamRearText)
 	signs.Blue2.update(arena, "B2", false, countdown, blueInMatchTeamRearText)
-	signs.Blue3.update(arena, "B3", false, countdown, blueInMatchTeamRearText)
 	signs.BlueTimer.update(arena, "", false, countdown, blueInMatchTimerRearText)
 }
 
 // Sets the team numbers for the next match on all signs.
-func (signs *TeamSigns) SetNextMatchTeams(teams [6]int) {
+func (signs *TeamSigns) SetNextMatchTeams(teams [game.TeamsPerMatch]int) {
 	signs.Red1.nextMatchTeamId = teams[0]
 	signs.Red2.nextMatchTeamId = teams[1]
-	signs.Red3.nextMatchTeamId = teams[2]
-	signs.Blue1.nextMatchTeamId = teams[3]
-	signs.Blue2.nextMatchTeamId = teams[4]
-	signs.Blue3.nextMatchTeamId = teams[5]
+	signs.Blue1.nextMatchTeamId = teams[2]
+	signs.Blue2.nextMatchTeamId = teams[3]
 }
 
 // Sets the IP address of the sign.
@@ -304,10 +298,6 @@ func (sign *TeamSign) generateTeamNumberTexts(
 			frontColor = greenColor
 		} else if arena.FieldVolunteers {
 			frontColor = purpleColor
-		} else if allianceStation.DsConn != nil && !allianceStation.DsConn.RobotLinked &&
-			(arena.MatchState == AutoPeriod || arena.MatchState == PausePeriod || arena.MatchState == TeleopPeriod) {
-			// Blink the display to indicate that the robot is not linked while the match is in progress.
-			frontColor = blinkColor(allianceColor)
 		} else {
 			frontColor = allianceColor
 		}
@@ -321,18 +311,8 @@ func (sign *TeamSign) generateTeamNumberTexts(
 	} else if arena.MatchState == PreMatch || arena.MatchState == TimeoutActive {
 		if allianceStation.Bypass {
 			message = "Bypassed"
-		} else if !allianceStation.Ethernet {
-			message = "Connect PC"
-		} else if allianceStation.DsConn == nil {
-			message = "Start DS"
-		} else if allianceStation.DsConn.WrongStation != "" {
-			message = "Move Station"
-		} else if !allianceStation.DsConn.RadioLinked {
-			message = "No Radio"
-		} else if !allianceStation.DsConn.RioLinked {
-			message = "No Rio"
-		} else if !allianceStation.DsConn.RobotLinked {
-			message = "No Code"
+		} else if !allianceStation.Ready {
+			message = "Stage Robot"
 		} else {
 			message = "Ready"
 		}

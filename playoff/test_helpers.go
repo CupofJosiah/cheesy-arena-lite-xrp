@@ -108,20 +108,16 @@ func assertMatch(
 	if redAlliance == 0 {
 		assert.Equal(t, 0, match.Red1)
 		assert.Equal(t, 0, match.Red2)
-		assert.Equal(t, 0, match.Red3)
 	} else {
 		assert.Equal(t, 100*redAlliance+2, match.Red1)
 		assert.Equal(t, 100*redAlliance+1, match.Red2)
-		assert.Equal(t, 100*redAlliance+3, match.Red3)
 	}
 	if blueAlliance == 0 {
 		assert.Equal(t, 0, match.Blue1)
 		assert.Equal(t, 0, match.Blue2)
-		assert.Equal(t, 0, match.Blue3)
 	} else {
 		assert.Equal(t, 100*blueAlliance+2, match.Blue1)
 		assert.Equal(t, 100*blueAlliance+1, match.Blue2)
-		assert.Equal(t, 100*blueAlliance+3, match.Blue3)
 	}
 	assert.Equal(t, useTiebreakCriteria, match.UseTiebreakCriteria)
 	assert.Equal(t, tbaCompLevel, match.TbaMatchKey.CompLevel)

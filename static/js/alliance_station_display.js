@@ -80,18 +80,10 @@ var handleArenaStatus = function (data) {
   if (stationStatus && stationStatus.Bypass) {
     $("#match").attr("data-status", "bypass");
   } else if (stationStatus) {
-    if (!stationStatus.DsConn || !stationStatus.DsConn.DsLinked) {
-      $("#match").attr("data-status", station[0]);
-    } else if (!stationStatus.DsConn.RobotLinked) {
-      blink = true;
-      if (!blinkInterval) {
-        blinkInterval = setInterval(function () {
-          var status = $("#match").attr("data-status");
-          $("#match").attr("data-status", (status === "") ? station[0] : "");
-        }, 250);
-      }
-    } else {
+    if (stationStatus.Ready) {
       $("#match").attr("data-status", "");
+    } else {
+      $("#match").attr("data-status", station[0]);
     }
   }
 

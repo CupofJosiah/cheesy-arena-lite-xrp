@@ -177,8 +177,6 @@ func (web *Web) newHandler() http.Handler {
 	mux.HandleFunc("GET /match_play", web.matchPlayHandler)
 	mux.HandleFunc("GET /match_play/match_load", web.matchPlayMatchLoadHandler)
 	mux.HandleFunc("GET /match_play/websocket", web.matchPlayWebsocketHandler)
-	mux.HandleFunc("GET /match_logs", web.matchLogsHandler)
-	mux.HandleFunc("GET /match_logs/{matchId}/{stationId}/log", web.matchLogsViewGetHandler)
 	mux.HandleFunc("GET /match_review", web.matchReviewHandler)
 	mux.HandleFunc("GET /match_review/{matchId}/edit", web.matchReviewEditGetHandler)
 	mux.HandleFunc("POST /match_review/{matchId}/edit", web.matchReviewEditPostHandler)
@@ -233,7 +231,6 @@ func (web *Web) newHandler() http.Handler {
 	mux.HandleFunc("POST /setup/teams/clear", web.teamsClearHandler)
 	mux.HandleFunc("GET /setup/teams/generate_wpa_keys", web.teamsGenerateWpaKeysHandler)
 	mux.HandleFunc("GET /setup/teams/progress", web.teamsUpdateProgressBarHandler)
-	mux.HandleFunc("GET /setup/teams/refresh", web.teamsRefreshHandler)
 	return mux
 }
 

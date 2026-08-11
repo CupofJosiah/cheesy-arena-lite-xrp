@@ -11,26 +11,21 @@ UI for entering cards and foul points.
   <section id="cards">
     <h3>Red/Yellow Cards</h3>
     <div class="alliance-cards" id="redCards">
-      {{range $i := seq 3}}
+      {{range $i := seq 2}}
       {{template "teamCard" dict "alliance" "red" "position" $i}}
       {{end}}
     </div>
     <div class="alliance-cards" id="blueCards">
-      {{range $i := seq 3}}
+      {{range $i := seq 2}}
       {{template "teamCard" dict "alliance" "blue" "position" $i}}
       {{end}}
     </div>
   </section>
-  <section id="foulPoints">
-    <h3>Foul Points Against</h3>
-    <label class="red">
-      <span>Red</span>
-      <input id="redFoulPointsAgainst" type="number" min="0" step="1" value="0">
-    </label>
-    <label class="blue">
-      <span>Blue</span>
-      <input id="blueFoulPointsAgainst" type="number" min="0" step="1" value="0">
-    </label>
+  <section id="penalties">
+    <h3>Penalties Committed</h3>
+    <p class="penalty-note">Points are awarded to the opposing alliance (T03).</p>
+    {{template "alliancePenalties" dict "alliance" "red" "title" "Red"}}
+    {{template "alliancePenalties" dict "alliance" "blue" "title" "Blue"}}
   </section>
   <section id="scoringStatuses">
     <h3>Scoring Status</h3>
@@ -75,5 +70,29 @@ UI for entering cards and foul points.
 {{end}}
 {{define "teamCard"}}
 <div class="team-card" id="{{.alliance}}Team{{.position}}Card" data-alliance="{{.alliance}}" onclick="cycleCard(this);">
+</div>
+{{end}}
+
+{{define "penaltyCounter"}}
+<div class="penalty-counter">
+  <span class="penalty-label">{{.label}}<span class="penalty-value">{{.points}}</span></span>
+  <div class="penalty-controls">
+    <button type="button" class="penalty-button" ontouchstart
+        onclick="adjustPenalty('{{.alliance}}', '{{.tier}}', -1);">&minus;</button>
+    <span class="penalty-count" id="{{.alliance}}-{{.tier}}Penalties">0</span>
+    <button type="button" class="penalty-button" ontouchstart
+        onclick="adjustPenalty('{{.alliance}}', '{{.tier}}', 1);">+</button>
+  </div>
+</div>
+{{end}}
+
+{{define "alliancePenalties"}}
+<div class="alliance-penalties {{.alliance}}">
+  <h4>{{.title}}</h4>
+  {{template "penaltyCounter" dict "alliance" .alliance "tier" "minor" "label" "Minor" "points" "10"}}
+  {{template "penaltyCounter" dict "alliance" .alliance "tier" "major" "label" "Major" "points" "25"}}
+  <div class="penalty-total">
+    <span>Points to opponent</span><span id="{{.alliance}}-penaltyPoints">0</span>
+  </div>
 </div>
 {{end}}

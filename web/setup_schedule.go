@@ -106,12 +106,9 @@ func (web *Web) scheduleGeneratePostHandler(w http.ResponseWriter, r *http.Reque
 				teamFirstMatches[team] = match.ShortName
 			}
 		}
-		checkTeam(match.Red1)
-		checkTeam(match.Red2)
-		checkTeam(match.Red3)
-		checkTeam(match.Blue1)
-		checkTeam(match.Blue2)
-		checkTeam(match.Blue3)
+		for _, teamId := range match.TeamIds() {
+			checkTeam(teamId)
+		}
 	}
 	cachedTeamFirstMatches[matchType] = teamFirstMatches
 

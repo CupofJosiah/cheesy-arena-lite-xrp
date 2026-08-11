@@ -109,13 +109,13 @@ func (web *Web) matchReviewEditGetHandler(w http.ResponseWriter, r *http.Request
 	alliances := []MatchReviewEditAlliance{
 		{
 			Alliance:          "red",
-			Teams:             []int{match.Red1, match.Red2, match.Red3},
+			Teams:             []int{match.Red1, match.Red2},
 			Summary:           matchResult.RedScoreSummary(),
 			ShowRankingPoints: match.Type != model.Playoff,
 		},
 		{
 			Alliance:          "blue",
-			Teams:             []int{match.Blue1, match.Blue2, match.Blue3},
+			Teams:             []int{match.Blue1, match.Blue2},
 			Summary:           matchResult.BlueScoreSummary(),
 			ShowRankingPoints: match.Type != model.Playoff,
 		},
@@ -267,8 +267,8 @@ func (web *Web) buildMatchReviewList(matchType model.MatchType) ([]MatchReviewLi
 		matchReviewList[i].Id = match.Id
 		matchReviewList[i].ShortName = match.ShortName
 		matchReviewList[i].Time = match.Time.Local().Format("Mon 1/02 03:04 PM")
-		matchReviewList[i].RedTeams = []int{match.Red1, match.Red2, match.Red3}
-		matchReviewList[i].BlueTeams = []int{match.Blue1, match.Blue2, match.Blue3}
+		matchReviewList[i].RedTeams = []int{match.Red1, match.Red2}
+		matchReviewList[i].BlueTeams = []int{match.Blue1, match.Blue2}
 		matchReviewList[i].RedSummary = new(game.ScoreSummary)
 		matchReviewList[i].BlueSummary = new(game.ScoreSummary)
 		matchResult, err := web.arena.Database.GetMatchResultForMatch(match.Id)

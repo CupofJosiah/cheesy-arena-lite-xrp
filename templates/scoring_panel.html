@@ -2,7 +2,7 @@
 Copyright 2014 Team 254. All Rights Reserved.
 Author: pat@patfairbank.com (Patrick Fairbank)
 
-UI for entering realtime generic scores.
+UI for entering realtime Iron Acres scores.
 */}}
 {{define "title"}}Scoring Panel{{end}}
 {{define "body"}}
@@ -30,20 +30,45 @@ UI for entering realtime generic scores.
 <script src="/static/js/scoring_panel.js"></script>
 {{end}}
 
+{{/* One counter row: a label with its point value, minus/plus buttons, and the live count. */}}
+{{define "scoreCounter"}}
+<div class="score-counter">
+  <span class="counter-label">{{.label}}<span class="counter-value">{{.points}}</span></span>
+  <div class="counter-controls">
+    <button type="button" class="counter-button" ontouchstart
+        onclick="adjustScore('{{.alliance}}', '{{.field}}', -1);">&minus;</button>
+    <span class="counter-count" id="{{.alliance}}-{{.field}}">0</span>
+    <button type="button" class="counter-button" ontouchstart
+        onclick="adjustScore('{{.alliance}}', '{{.field}}', 1);">+</button>
+  </div>
+</div>
+{{end}}
+
 {{define "allianceScoreInputs"}}
 <section class="alliance-score {{.alliance}}">
   <h1>{{.title}}</h1>
-  <label>
-    <span>Auto</span>
-    <input id="{{.alliance}}Auto" type="number" min="0" step="1" value="0" disabled>
-  </label>
-  <label>
-    <span>Teleop</span>
-    <input id="{{.alliance}}Teleop" type="number" min="0" step="1" value="0" disabled>
-  </label>
-  <label>
-    <span>Endgame</span>
-    <input id="{{.alliance}}PostMatch" type="number" min="0" step="1" value="0" disabled>
-  </label>
+
+  <h2>Autonomous</h2>
+  {{template "scoreCounter" dict "alliance" .alliance "field" "FactoryParks" "label" "Parked in Factory" "points" "5"}}
+  {{template "scoreCounter" dict "alliance" .alliance "field" "AutoCrops" "label" "Crops in Factory" "points" "7"}}
+  {{template "scoreCounter" dict "alliance" .alliance "field" "SilosDumped" "label" "Silos Dumped" "points" "5"}}
+
+  <h2>Driver Controlled</h2>
+  {{template "scoreCounter" dict "alliance" .alliance "field" "TeleopCrops" "label" "Crops in Factory" "points" "7"}}
+  {{template "scoreCounter" dict
+      "alliance" .alliance "field" "CityLimitsProducts" "label" "Products in City Limits" "points" "10"}}
+  {{template "scoreCounter" dict
+      "alliance" .alliance "field" "CityCenterProducts" "label" "Products in City Center" "points" "15"}}
+
+  <h2>Endgame</h2>
+  {{template "scoreCounter" dict "alliance" .alliance "field" "BarnParks" "label" "Parked in Barn" "points" "5"}}
+  {{template "scoreCounter" dict "alliance" .alliance "field" "BarnHangs" "label" "Hanging from Barn" "points" "25"}}
+
+  <div class="score-totals">
+    <div><span>Auto</span><span id="{{.alliance}}-autoPoints">0</span></div>
+    <div><span>Teleop</span><span id="{{.alliance}}-teleopPoints">0</span></div>
+    <div><span>Endgame</span><span id="{{.alliance}}-endgamePoints">0</span></div>
+    <div class="score-total"><span>Total</span><span id="{{.alliance}}-totalPoints">0</span></div>
+  </div>
 </section>
 {{end}}

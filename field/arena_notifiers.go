@@ -90,26 +90,12 @@ func (arena *Arena) generateArenaStatusMessage() any {
 		MatchId          int
 		AllianceStations map[string]*AllianceStation
 		MatchState
-		CanStartMatch         bool
-		AccessPointStatus     string
-		SwitchStatus          string
-		RedSCCStatus          string
-		BlueSCCStatus         string
-		PlcIsHealthy          bool
-		FieldEStop            bool
-		PlcArmorBlockStatuses map[string]bool
+		CanStartMatch bool
 	}{
 		arena.CurrentMatch.Id,
 		arena.AllianceStations,
 		arena.MatchState,
 		arena.checkCanStartMatch() == nil,
-		arena.accessPoint.Status,
-		arena.networkSwitch.Status,
-		arena.redSCC.Status,
-		arena.blueSCC.Status,
-		arena.Plc.IsHealthy(),
-		arena.Plc.GetFieldEStop(),
-		arena.Plc.GetArmorBlockStatuses(),
 	}
 }
 
@@ -196,9 +182,7 @@ func (arena *Arena) GenerateMatchLoadMessage() any {
 		}
 	}
 
-	// Don't allow manual substitution of practice/playoff teams when they would be automatically overwritten by Nexus.
-	var allowManualSubstitution = arena.CurrentMatch.ShouldAllowSubstitution() &&
-		!(arena.EventSettings.NexusEnabled && arena.CurrentMatch.ShouldAllowNexusSubstitution())
+	var allowManualSubstitution = arena.CurrentMatch.ShouldAllowSubstitution()
 
 	return &struct {
 		Match              *model.Match
@@ -281,10 +265,10 @@ func (arena *Arena) GenerateScorePostedMessage() any {
 	}
 
 	redRankings := map[int]*game.Ranking{
-		arena.SavedMatch.Red1: nil, arena.SavedMatch.Red2: nil, arena.SavedMatch.Red3: nil,
+		arena.SavedMatch.Red1: nil, arena.SavedMatch.Red2: nil,
 	}
 	blueRankings := map[int]*game.Ranking{
-		arena.SavedMatch.Blue1: nil, arena.SavedMatch.Blue2: nil, arena.SavedMatch.Blue3: nil,
+		arena.SavedMatch.Blue1: nil, arena.SavedMatch.Blue2: nil,
 	}
 	for index, ranking := range arena.SavedRankings {
 		if _, ok := redRankings[ranking.TeamId]; ok {

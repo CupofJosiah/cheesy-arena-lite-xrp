@@ -22,19 +22,19 @@ func TestNonExistentSchedule(t *testing.T) {
 	teams := make([]model.Team, 5)
 	scheduleBlocks := []model.ScheduleBlock{{0, model.Test, time.Unix(0, 0).UTC(), 2, 60}}
 	_, err := BuildRandomSchedule(teams, scheduleBlocks, model.Test)
-	expectedErr := "No schedule template exists for 5 teams and 2 matches"
+	expectedErr := "No schedule template exists for 5 teams and 1 matches"
 	if assert.NotNil(t, err) {
 		assert.Equal(t, expectedErr, err.Error())
 	}
 }
 
 func TestMalformedSchedule(t *testing.T) {
-	filename := fmt.Sprintf("%s/5_1.csv", filepath.Join(model.BaseDir, schedulesDir))
+	filename := fmt.Sprintf("%s/4_1_2.csv", filepath.Join(model.BaseDir, schedulesDir))
 	scheduleFile, _ := os.Create(filename)
 	defer os.Remove(filename)
-	scheduleFile.WriteString("1,0,2,0,3,0,4,0,5,0,6,0\n6,0,5,0,4,0,3,0,2,0,1,0\n")
+	scheduleFile.WriteString("1,0,2,0,3,0,4,0\n4,0,3,0,2,0,1,0\n")
 	scheduleFile.Close()
-	teams := make([]model.Team, 5)
+	teams := make([]model.Team, 4)
 	scheduleBlocks := []model.ScheduleBlock{{0, model.Test, time.Unix(0, 0).UTC(), 1, 60}}
 	_, err := BuildRandomSchedule(teams, scheduleBlocks, model.Test)
 	expectedErr := "Schedule file contains 2 matches, expected 1"
@@ -44,7 +44,7 @@ func TestMalformedSchedule(t *testing.T) {
 
 	os.Remove(filename)
 	scheduleFile, _ = os.Create(filename)
-	scheduleFile.WriteString("1,0,asdf,0,3,0,4,0,5,0,6,0\n")
+	scheduleFile.WriteString("1,0,asdf,0,3,0,4,0\n")
 	scheduleFile.Close()
 	_, err = BuildRandomSchedule(teams, scheduleBlocks, model.Test)
 	if assert.NotNil(t, err) {
@@ -52,46 +52,73 @@ func TestMalformedSchedule(t *testing.T) {
 	}
 }
 
-func TestScheduleTeams(t *testing.T) {
-	randomizer := rand.New(rand.NewSource(0))
-	schedulePerm = randomizer.Perm
+// A schedule row that is too short must be reported rather than panicking.
+func TestShortScheduleRow(t *testing.T) {
+	filename := fmt.Sprintf("%s/4_1_2.csv", filepath.Join(model.BaseDir, schedulesDir))
+	scheduleFile, _ := os.Create(filename)
+	defer os.Remove(filename)
+	scheduleFile.WriteString("1,0,2,0\n")
+	scheduleFile.Close()
+	teams := make([]model.Team, 4)
+	scheduleBlocks := []model.ScheduleBlock{{0, model.Test, time.Unix(0, 0).UTC(), 1, 60}}
+	_, err := BuildRandomSchedule(teams, scheduleBlocks, model.Test)
+	if assert.NotNil(t, err) {
+		assert.Equal(t, "Schedule file match 1 contains 4 fields, expected 8", err.Error())
+	}
+}
 
-	numTeams := 18
+// Verifies the structure of a generated 2v2 schedule for each available number of matches per team.
+func TestScheduleTeams(t *testing.T) {
+	const numTeams = 12
 	teams := make([]model.Team, numTeams)
 	for i := 0; i < numTeams; i++ {
 		teams[i].Id = i + 101
 	}
-	scheduleBlocks := []model.ScheduleBlock{{0, model.Practice, time.Unix(0, 0).UTC(), 6, 60}}
-	matches, err := BuildRandomSchedule(teams, scheduleBlocks, model.Practice)
-	assert.Nil(t, err)
-	assertMatch(t, matches[0], model.Practice, 1, 0, "P1", "Practice 1", "p", 115, 111, 108, 109, 116, 117)
-	assertMatch(t, matches[1], model.Practice, 2, 60, "P2", "Practice 2", "p", 114, 112, 103, 101, 104, 118)
-	assertMatch(t, matches[2], model.Practice, 3, 120, "P3", "Practice 3", "p", 110, 107, 105, 106, 113, 102)
-	assertMatch(t, matches[3], model.Practice, 4, 180, "P4", "Practice 4", "p", 112, 108, 109, 101, 111, 103)
-	assertMatch(t, matches[4], model.Practice, 5, 240, "P5", "Practice 5", "p", 113, 117, 115, 110, 114, 102)
-	assertMatch(t, matches[5], model.Practice, 6, 300, "P6", "Practice 6", "p", 118, 105, 106, 107, 104, 116)
 
-	// Check with excess room for matches in the schedule.
-	scheduleBlocks = []model.ScheduleBlock{{0, model.Practice, time.Unix(0, 0).UTC(), 7, 60}}
-	matches, err = BuildRandomSchedule(teams, scheduleBlocks, model.Practice)
-	assert.Nil(t, err)
+	for _, matchesPerTeam := range []int{6, 7, 8, 9, 10} {
+		randomizer := rand.New(rand.NewSource(0))
+		schedulePerm = randomizer.Perm
 
-	// Check with qualification matches.
-	randomizer = rand.New(rand.NewSource(0))
-	schedulePerm = randomizer.Perm
-	scheduleBlocks = []model.ScheduleBlock{{0, model.Qualification, time.Unix(0, 0).UTC(), 6, 60}}
-	matches, err = BuildRandomSchedule(teams, scheduleBlocks, model.Qualification)
-	assert.Nil(t, err)
-	assertMatch(t, matches[0], model.Qualification, 1, 0, "Q1", "Qualification 1", "qm", 115, 111, 108, 109, 116, 117)
-	assertMatch(t, matches[1], model.Qualification, 2, 60, "Q2", "Qualification 2", "qm", 114, 112, 103, 101, 104, 118)
-	assertMatch(t, matches[2], model.Qualification, 3, 120, "Q3", "Qualification 3", "qm", 110, 107, 105, 106, 113, 102)
-	assertMatch(t, matches[3], model.Qualification, 4, 180, "Q4", "Qualification 4", "qm", 112, 108, 109, 101, 111, 103)
-	assertMatch(t, matches[4], model.Qualification, 5, 240, "Q5", "Qualification 5", "qm", 113, 117, 115, 110, 114, 102)
-	assertMatch(t, matches[5], model.Qualification, 6, 300, "Q6", "Qualification 6", "qm", 118, 105, 106, 107, 104, 116)
+		numMatches := numTeams * matchesPerTeam / TeamsPerMatch
+		scheduleBlocks := []model.ScheduleBlock{
+			{0, model.Qualification, time.Unix(0, 0).UTC(), numMatches, 60},
+		}
+		matches, err := BuildRandomSchedule(teams, scheduleBlocks, model.Qualification)
+		if !assert.Nil(t, err) {
+			continue
+		}
+		assert.Equal(t, numMatches, len(matches))
+
+		matchCounts := make(map[int]int)
+		for i, match := range matches {
+			assert.Equal(t, model.Qualification, match.Type)
+			assert.Equal(t, i+1, match.TypeOrder)
+			assert.Equal(t, fmt.Sprintf("Q%d", i+1), match.ShortName)
+			assert.Equal(t, fmt.Sprintf("Qualification %d", i+1), match.LongName)
+			assert.Equal(t, "qm", match.TbaMatchKey.CompLevel)
+			assert.Equal(t, i+1, match.TbaMatchKey.MatchNumber)
+			assert.Equal(t, time.Unix(int64(i*60), 0).UTC(), match.Time)
+
+			// A team must never appear twice in the same match.
+			seen := make(map[int]bool)
+			for _, teamId := range match.TeamIds() {
+				assert.False(t, seen[teamId], "team %d appears twice in match %d", teamId, i+1)
+				seen[teamId] = true
+				matchCounts[teamId]++
+			}
+		}
+
+		// Every team must be scheduled, and each must play the same number of matches.
+		assert.Equal(t, numTeams, len(matchCounts))
+		for _, team := range teams {
+			assert.Equal(t, matchesPerTeam, matchCounts[team.Id], "team %d", team.Id)
+		}
+	}
 }
 
 func TestScheduleTiming(t *testing.T) {
-	teams := make([]model.Team, 18)
+	teams := make([]model.Team, 12)
+	// 30 matches over three blocks works out to 10 qualification matches per team.
 	scheduleBlocks := []model.ScheduleBlock{
 		{0, model.Qualification, time.Unix(100, 0).UTC(), 10, 75},
 		{0, model.Qualification, time.Unix(20000, 0).UTC(), 5, 1000},
@@ -107,56 +134,33 @@ func TestScheduleTiming(t *testing.T) {
 	assert.Equal(t, time.Unix(100406, 0).UTC(), matches[29].Time)
 }
 
+// The bundled 2v2 schedules divide evenly and so contain no surrogates; use a synthetic file to cover the flags.
 func TestScheduleSurrogates(t *testing.T) {
 	randomizer := rand.New(rand.NewSource(0))
 	schedulePerm = randomizer.Perm
 
-	numTeams := 38
-	teams := make([]model.Team, numTeams)
-	for i := 0; i < numTeams; i++ {
+	filename := fmt.Sprintf("%s/4_2_2.csv", filepath.Join(model.BaseDir, schedulesDir))
+	scheduleFile, _ := os.Create(filename)
+	defer os.Remove(filename)
+	scheduleFile.WriteString("1,0,2,0,3,0,4,0\n1,1,2,0,3,1,4,0\n")
+	scheduleFile.Close()
+
+	teams := make([]model.Team, 4)
+	for i := range teams {
 		teams[i].Id = i + 101
 	}
-	scheduleBlocks := []model.ScheduleBlock{{0, model.Qualification, time.Unix(0, 0).UTC(), 64, 60}}
-	matches, _ := BuildRandomSchedule(teams, scheduleBlocks, model.Qualification)
-	for i, match := range matches {
-		if i == 13 || i == 14 {
-			if !match.Red1IsSurrogate || match.Red2IsSurrogate || match.Red3IsSurrogate ||
-				!match.Blue1IsSurrogate || match.Blue2IsSurrogate || match.Blue3IsSurrogate {
-				t.Errorf("Surrogates wrong for match %d", i+1)
-			}
-		} else {
-			if match.Red1IsSurrogate || match.Red2IsSurrogate || match.Red3IsSurrogate ||
-				match.Blue1IsSurrogate || match.Blue2IsSurrogate || match.Blue3IsSurrogate {
-				t.Errorf("Expected match %d to be free of surrogates", i+1)
-			}
-		}
-	}
-}
+	scheduleBlocks := []model.ScheduleBlock{{0, model.Qualification, time.Unix(0, 0).UTC(), 2, 60}}
+	matches, err := BuildRandomSchedule(teams, scheduleBlocks, model.Qualification)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(matches))
 
-func assertMatch(
-	t *testing.T,
-	match model.Match,
-	matchType model.MatchType,
-	typeOrder int,
-	timeInSec int64,
-	shortName, longName, tbaCompLevel string,
-	red1, red2, red3, blue1, blue2, blue3 int,
-) {
-	assert.Equal(t, matchType, match.Type)
-	assert.Equal(t, typeOrder, match.TypeOrder)
-	assert.Equal(t, time.Unix(timeInSec, 0).UTC(), match.Time)
-	assert.Equal(t, shortName, match.ShortName)
-	assert.Equal(t, longName, match.LongName)
-	assert.Equal(t, "", match.NameDetail)
-	assert.Equal(t, 0, match.PlayoffRedAlliance)
-	assert.Equal(t, 0, match.PlayoffBlueAlliance)
-	assert.Equal(t, red1, match.Red1)
-	assert.Equal(t, red2, match.Red2)
-	assert.Equal(t, red3, match.Red3)
-	assert.Equal(t, blue1, match.Blue1)
-	assert.Equal(t, blue2, match.Blue2)
-	assert.Equal(t, blue3, match.Blue3)
-	assert.Equal(t, tbaCompLevel, match.TbaMatchKey.CompLevel)
-	assert.Equal(t, 0, match.TbaMatchKey.SetNumber)
-	assert.Equal(t, typeOrder, match.TbaMatchKey.MatchNumber)
+	assert.False(t, matches[0].Red1IsSurrogate)
+	assert.False(t, matches[0].Red2IsSurrogate)
+	assert.False(t, matches[0].Blue1IsSurrogate)
+	assert.False(t, matches[0].Blue2IsSurrogate)
+
+	assert.True(t, matches[1].Red1IsSurrogate)
+	assert.False(t, matches[1].Red2IsSurrogate)
+	assert.True(t, matches[1].Blue1IsSurrogate)
+	assert.False(t, matches[1].Blue2IsSurrogate)
 }

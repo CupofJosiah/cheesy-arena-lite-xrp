@@ -32,10 +32,8 @@ func TestMatchCrud(t *testing.T) {
 		NameDetail:          "Qual Round",
 		Red1:                1,
 		Red2:                2,
-		Red3:                3,
 		Blue1:               4,
 		Blue2:               5,
-		Blue3:               6,
 		UseTiebreakCriteria: true,
 		TbaMatchKey:         TbaMatchKey{"qm", 0, 254},
 	}
@@ -70,10 +68,8 @@ func TestTruncateMatches(t *testing.T) {
 		LongName:  "Qualification 254",
 		Red1:      1,
 		Red2:      2,
-		Red3:      3,
 		Blue1:     4,
 		Blue2:     5,
-		Blue3:     6,
 	}
 	assert.Nil(t, db.CreateMatch(&match))
 	assert.Nil(t, db.TruncateMatches())

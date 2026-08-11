@@ -14,17 +14,20 @@ import (
 
 func TestGenerateTeamSignAllianceScores(t *testing.T) {
 	arena := setupTestArena(t)
-	arena.RedRealtimeScore.CurrentScore = game.Score{AutoPoints: 4, TeleopPoints: 6, PostMatchPoints: 2}
-	arena.BlueRealtimeScore.CurrentScore = game.Score{AutoPoints: 1, TeleopPoints: 3, FoulPointsAgainst: 5}
+	// The sign shows each alliance's score excluding endgame points, which are not final until the match ends.
+	// Red: 15 auto + 25 endgame. Blue: 5 auto + 5 endgame.
+	arena.RedRealtimeScore.CurrentScore = game.Score{FactoryParks: 3, BarnHangs: 1}
+	arena.BlueRealtimeScore.CurrentScore = game.Score{FactoryParks: 1, BarnParks: 1}
 
-	assert.Equal(t, "R015-B004", generateTeamSignAllianceScores(arena, true))
-	assert.Equal(t, "B004-R015", generateTeamSignAllianceScores(arena, false))
+	assert.Equal(t, "R015-B005", generateTeamSignAllianceScores(arena, true))
+	assert.Equal(t, "B005-R015", generateTeamSignAllianceScores(arena, false))
 }
 
 func TestGenerateInMatchTimerRearText(t *testing.T) {
 	arena := setupTestArena(t)
-	arena.RedRealtimeScore.CurrentScore = game.Score{AutoPoints: 10}
-	arena.BlueRealtimeScore.CurrentScore = game.Score{FoulPointsAgainst: 2}
+	// Red: one factory park (5) plus one auto crop (7).
+	arena.RedRealtimeScore.CurrentScore = game.Score{FactoryParks: 1, AutoCrops: 1}
+	arena.BlueRealtimeScore.CurrentScore = game.Score{}
 
 	assert.Equal(t, "1:23       R012-B000", generateInMatchTimerRearText(arena, true, "1:23"))
 }

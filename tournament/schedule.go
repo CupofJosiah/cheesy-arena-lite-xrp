@@ -8,6 +8,7 @@ package tournament
 import (
 	"encoding/csv"
 	"fmt"
+	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"math"
 	"math/rand"
@@ -18,8 +19,13 @@ import (
 )
 
 const (
-	schedulesDir  = "schedules"
-	TeamsPerMatch = 6
+	schedulesDir = "schedules"
+
+	// TeamsPerMatch is the number of teams in a match; Iron Acres is played 2 versus 2.
+	TeamsPerMatch = game.TeamsPerMatch
+
+	// Each team in a schedule line is followed by a flag indicating whether it is a surrogate.
+	scheduleFieldsPerMatch = 2 * TeamsPerMatch
 )
 
 var schedulePerm = rand.Perm
@@ -36,8 +42,15 @@ func BuildRandomSchedule(
 	// Adjust the number of matches to remove any excess from non-perfect block scheduling.
 	numMatches = int(math.Ceil(float64(numTeams) * float64(matchesPerTeam) / TeamsPerMatch))
 
+	// Two-alliance-member schedules are suffixed with "_2" to distinguish them from the six-team originals.
 	file, err := os.Open(
-		fmt.Sprintf("%s/%d_%d.csv", filepath.Join(model.BaseDir, schedulesDir), numTeams, matchesPerTeam),
+		fmt.Sprintf(
+			"%s/%d_%d_%d.csv",
+			filepath.Join(model.BaseDir, schedulesDir),
+			numTeams,
+			matchesPerTeam,
+			game.TeamsPerAlliance,
+		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("No schedule template exists for %d teams and %d matches", numTeams, matchesPerTeam)
@@ -53,9 +66,14 @@ func BuildRandomSchedule(
 	}
 
 	// Convert string fields from schedule to integers.
-	anonSchedule := make([][12]int, numMatches)
+	anonSchedule := make([][scheduleFieldsPerMatch]int, numMatches)
 	for i := 0; i < numMatches; i++ {
-		for j := 0; j < 12; j++ {
+		if len(csvLines[i]) < scheduleFieldsPerMatch {
+			return nil, fmt.Errorf(
+				"Schedule file match %d contains %d fields, expected %d", i+1, len(csvLines[i]), scheduleFieldsPerMatch,
+			)
+		}
+		for j := 0; j < scheduleFieldsPerMatch; j++ {
 			anonSchedule[i][j], err = strconv.Atoi(csvLines[i][j])
 			if err != nil {
 				return nil, err
@@ -84,14 +102,10 @@ func BuildRandomSchedule(
 		matches[i].Red1IsSurrogate = anonMatch[1] == 1
 		matches[i].Red2 = teams[teamShuffle[anonMatch[2]-1]].Id
 		matches[i].Red2IsSurrogate = anonMatch[3] == 1
-		matches[i].Red3 = teams[teamShuffle[anonMatch[4]-1]].Id
-		matches[i].Red3IsSurrogate = anonMatch[5] == 1
-		matches[i].Blue1 = teams[teamShuffle[anonMatch[6]-1]].Id
-		matches[i].Blue1IsSurrogate = anonMatch[7] == 1
-		matches[i].Blue2 = teams[teamShuffle[anonMatch[8]-1]].Id
-		matches[i].Blue2IsSurrogate = anonMatch[9] == 1
-		matches[i].Blue3 = teams[teamShuffle[anonMatch[10]-1]].Id
-		matches[i].Blue3IsSurrogate = anonMatch[11] == 1
+		matches[i].Blue1 = teams[teamShuffle[anonMatch[4]-1]].Id
+		matches[i].Blue1IsSurrogate = anonMatch[5] == 1
+		matches[i].Blue2 = teams[teamShuffle[anonMatch[6]-1]].Id
+		matches[i].Blue2IsSurrogate = anonMatch[7] == 1
 		matches[i].TbaMatchKey.MatchNumber = i + 1
 	}
 

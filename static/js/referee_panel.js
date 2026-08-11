@@ -8,23 +8,37 @@ let refCommitted = false;
 let controlsAvailable = false;
 let scoreIsReady = false;
 
-const parseFoulInput = function (selector) {
-  const value = parseInt($(selector).val(), 10);
-  return Number.isFinite(value) && value >= 0 ? value : 0;
+// Penalty point values from T03 of the manual, used to preview the points awarded to the opponent.
+const penaltyPointValues = {minor: 10, major: 25};
+
+const penaltyCounts = {
+  red: {minor: 0, major: 0},
+  blue: {minor: 0, major: 0},
 };
 
-const sendFoulPoints = function () {
-  websocket.send("foulPoints", {
-    RedFoulPointsAgainst: parseFoulInput("#redFoulPointsAgainst"),
-    BlueFoulPointsAgainst: parseFoulInput("#blueFoulPointsAgainst"),
+const sendPenalties = function () {
+  websocket.send("penalties", {
+    RedMinorPenalties: penaltyCounts.red.minor,
+    RedMajorPenalties: penaltyCounts.red.major,
+    BlueMinorPenalties: penaltyCounts.blue.minor,
+    BlueMajorPenalties: penaltyCounts.blue.major,
   });
 };
 
-const setInputValue = function (selector, value) {
-  const input = $(selector);
-  if (!input.is(":focus")) {
-    input.val(value || 0);
-  }
+// Adjusts one alliance's count for a penalty tier. Penalties can be assessed at any time during a match.
+var adjustPenalty = function (alliance, tier, delta) {
+  penaltyCounts[alliance][tier] = Math.max(penaltyCounts[alliance][tier] + delta, 0);
+  renderPenalties(alliance);
+  websocket.send("addPenalty", {Alliance: alliance, Tier: tier, Delta: delta});
+};
+
+const renderPenalties = function (alliance) {
+  const counts = penaltyCounts[alliance];
+  $(`#${alliance}-minorPenalties`).text(counts.minor);
+  $(`#${alliance}-majorPenalties`).text(counts.major);
+  $(`#${alliance}-penaltyPoints`).text(
+    counts.minor * penaltyPointValues.minor + counts.major * penaltyPointValues.major
+  );
 };
 
 var cycleCard = function (cardButton) {
@@ -70,7 +84,7 @@ var confirmCommit = function () {
 };
 
 var commitAndPost = function () {
-	sendFoulPoints();
+	sendPenalties();
 	websocket.send("commitAndPost");
 };
 
@@ -79,10 +93,8 @@ var handleMatchLoad = function (data) {
 
   setTeamCard("red", 1, data.Teams["R1"]);
   setTeamCard("red", 2, data.Teams["R2"]);
-  setTeamCard("red", 3, data.Teams["R3"]);
   setTeamCard("blue", 1, data.Teams["B1"]);
   setTeamCard("blue", 2, data.Teams["B2"]);
-  setTeamCard("blue", 3, data.Teams["B3"]);
 };
 
 const handleMatchTime = function (data) {
@@ -98,8 +110,12 @@ const handleRealtimeScore = function (data) {
     $(`[data-team="${teamId}"]`).attr("data-card", card);
   }
 
-  setInputValue("#redFoulPointsAgainst", data.Red.Score.FoulPointsAgainst);
-  setInputValue("#blueFoulPointsAgainst", data.Blue.Score.FoulPointsAgainst);
+  penaltyCounts.red.minor = data.Red.Score.MinorPenalties || 0;
+  penaltyCounts.red.major = data.Red.Score.MajorPenalties || 0;
+  penaltyCounts.blue.minor = data.Blue.Score.MinorPenalties || 0;
+  penaltyCounts.blue.major = data.Blue.Score.MajorPenalties || 0;
+  renderPenalties("red");
+  renderPenalties("blue");
 };
 
 const handleScoringStatus = function (data) {
@@ -113,7 +129,6 @@ const handleScoringStatus = function (data) {
 };
 
 const updateUIMode = function () {
-	$("input[type=number]").prop("disabled", false);
 	$(".control-button").attr("data-enabled", controlsAvailable);
 	$("#commitButton").attr("data-enabled", controlsAvailable && !refCommitted);
 };
@@ -133,7 +148,8 @@ const setTeamCard = function (alliance, position, team) {
 };
 
 $(function () {
-  $("input[type=number]").on("input", sendFoulPoints);
+  renderPenalties("red");
+  renderPenalties("blue");
 
   websocket = new CheesyWebsocket("/panels/referee/websocket", {
     matchLoad: function (event) {

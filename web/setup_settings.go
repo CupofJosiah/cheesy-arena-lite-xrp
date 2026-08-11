@@ -112,37 +112,14 @@ func (web *Web) settingsPostHandler(w http.ResponseWriter, r *http.Request) {
 	eventSettings.SelectionRound2Order = r.PostFormValue("selectionRound2Order")
 	eventSettings.SelectionRound3Order = r.PostFormValue("selectionRound3Order")
 	eventSettings.SelectionShowUnpickedTeams = r.PostFormValue("selectionShowUnpickedTeams") == "on"
-	eventSettings.TbaDownloadEnabled = r.PostFormValue("tbaDownloadEnabled") == "on"
-	eventSettings.TbaPublishingEnabled = false
-	eventSettings.TbaEventCode = r.PostFormValue("tbaEventCode")
-	eventSettings.TbaSecretId = ""
-	eventSettings.TbaSecret = ""
 	eventSettings.AutoAudienceDisplayEnabled = r.PostFormValue("autoAudienceDisplayEnabled") == "on"
-	eventSettings.NexusEnabled = r.PostFormValue("nexusEnabled") == "on"
-	eventSettings.NetworkSecurityEnabled = r.PostFormValue("networkSecurityEnabled") == "on"
-	eventSettings.ApAddress = r.PostFormValue("apAddress")
-	eventSettings.ApPassword = r.PostFormValue("apPassword")
-	eventSettings.ApChannel, _ = strconv.Atoi(r.PostFormValue("apChannel"))
-	eventSettings.SwitchAddress = r.PostFormValue("switchAddress")
-	eventSettings.SwitchPassword = r.PostFormValue("switchPassword")
-	eventSettings.SCCManagementEnabled = r.PostFormValue("sccManagementEnabled") == "on"
-	eventSettings.RedSCCAddress = r.PostFormValue("redSCCAddress")
-	eventSettings.BlueSCCAddress = r.PostFormValue("blueSCCAddress")
-	eventSettings.SCCUsername = r.PostFormValue("sccUsername")
-	eventSettings.SCCPassword = r.PostFormValue("sccPassword")
-	eventSettings.SCCUpCommands = r.PostFormValue("sccUpCommands")
-	eventSettings.SCCDownCommands = r.PostFormValue("sccDownCommands")
-	eventSettings.PlcAddress = r.PostFormValue("plcAddress")
 	eventSettings.AdminPassword = r.PostFormValue("adminPassword")
 	eventSettings.TeamSignRed1Id, _ = strconv.Atoi(r.PostFormValue("teamSignRed1Id"))
 	eventSettings.TeamSignRed2Id, _ = strconv.Atoi(r.PostFormValue("teamSignRed2Id"))
-	eventSettings.TeamSignRed3Id, _ = strconv.Atoi(r.PostFormValue("teamSignRed3Id"))
 	eventSettings.TeamSignRedTimerId, _ = strconv.Atoi(r.PostFormValue("teamSignRedTimerId"))
 	eventSettings.TeamSignBlue1Id, _ = strconv.Atoi(r.PostFormValue("teamSignBlue1Id"))
 	eventSettings.TeamSignBlue2Id, _ = strconv.Atoi(r.PostFormValue("teamSignBlue2Id"))
-	eventSettings.TeamSignBlue3Id, _ = strconv.Atoi(r.PostFormValue("teamSignBlue3Id"))
 	eventSettings.TeamSignBlueTimerId, _ = strconv.Atoi(r.PostFormValue("teamSignBlueTimerId"))
-	eventSettings.UseLiteUdpPort = r.PostFormValue("useLiteUdpPort") == "on"
 	eventSettings.BlackmagicAddresses = r.PostFormValue("blackmagicAddresses")
 	eventSettings.CompanionAddress = r.PostFormValue("companionAddress")
 	eventSettings.CompanionPort, _ = strconv.Atoi(r.PostFormValue("companionPort"))

@@ -205,12 +205,9 @@ func createTeamMatchMap(teams []model.Team, matches []model.Match) map[int][]mod
 	}
 
 	for _, match := range matches {
-		teamMatches[match.Red1] = append(teamMatches[match.Red1], match)
-		teamMatches[match.Red2] = append(teamMatches[match.Red2], match)
-		teamMatches[match.Red3] = append(teamMatches[match.Red3], match)
-		teamMatches[match.Blue1] = append(teamMatches[match.Blue1], match)
-		teamMatches[match.Blue2] = append(teamMatches[match.Blue2], match)
-		teamMatches[match.Blue3] = append(teamMatches[match.Blue3], match)
+		for _, teamId := range match.TeamIds() {
+			teamMatches[teamId] = append(teamMatches[teamId], match)
+		}
 	}
 
 	return teamMatches

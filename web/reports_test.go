@@ -52,13 +52,10 @@ func TestScheduleCsvReport(t *testing.T) {
 		Time:             match1Time,
 		Red1:             1,
 		Red2:             2,
-		Red3:             3,
 		Blue1:            4,
 		Blue2:            5,
-		Blue3:            6,
 		Blue1IsSurrogate: true,
 		Blue2IsSurrogate: true,
-		Blue3IsSurrogate: true,
 	}
 	match2Time := time.Unix(600, 0)
 	match2 := model.Match{
@@ -67,13 +64,10 @@ func TestScheduleCsvReport(t *testing.T) {
 		Time:            match2Time,
 		Red1:            7,
 		Red2:            8,
-		Red3:            9,
 		Blue1:           10,
 		Blue2:           11,
-		Blue3:           12,
 		Red1IsSurrogate: true,
 		Red2IsSurrogate: true,
-		Red3IsSurrogate: true,
 	}
 	match3 := model.Match{
 		Type:      model.Practice,
@@ -81,10 +75,8 @@ func TestScheduleCsvReport(t *testing.T) {
 		Time:      time.Now(),
 		Red1:      6,
 		Red2:      5,
-		Red3:      4,
 		Blue1:     3,
 		Blue2:     2,
-		Blue3:     1,
 	}
 	web.arena.Database.CreateMatch(&match1)
 	web.arena.Database.CreateMatch(&match2)
@@ -109,13 +101,10 @@ func TestSchedulePdfReport(t *testing.T) {
 		Time:             time.Unix(0, 0),
 		Red1:             1,
 		Red2:             2,
-		Red3:             3,
 		Blue1:            4,
 		Blue2:            5,
-		Blue3:            6,
 		Blue1IsSurrogate: true,
 		Blue2IsSurrogate: true,
-		Blue3IsSurrogate: true,
 	}
 	web.arena.Database.CreateMatch(&match)
 	team := model.Team{

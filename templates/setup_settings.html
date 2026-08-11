@@ -134,24 +134,6 @@ UI for configuring event settings.
               </div>
             </fieldset>
             <fieldset class="mb-4">
-              <legend>Team Info Download</legend>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label">Event Code</label>
-                <div class="col-lg-6">
-                  <input type="text" class="form-control" name="tbaEventCode" value="{{.TbaEventCode}}">
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label" for="tbaDownloadEnabled">
-                  Enable Team Info Download (From The Blue Alliance)
-                </label>
-                <div class="col-lg-1 checkbox">
-                  <input type="checkbox" id="tbaDownloadEnabled"
-                    name="tbaDownloadEnabled" {{if .TbaDownloadEnabled}} checked{{end}}>
-                </div>
-              </div>
-            </fieldset>
-            <fieldset class="mb-4">
               <legend>Authentication</legend>
               <p>Configure password to enable authentication, or leave blank to disable.</p>
               <div class="row mb-3">
@@ -220,116 +202,6 @@ UI for configuring event settings.
           </div>
           <div class="tab-pane" id="field" role="tabpanel">
             <fieldset class="mb-4">
-              <legend>Networking</legend>
-              <p>Enable this setting if you have a Vivid-Hosting VH-113 access point and Cisco Catalyst 3500-series
-                switch
-                available, for isolating each team to its own SSID and VLAN.</p>
-              <div class="row mb-3">
-                <label class="col-lg-8 control-label"
-                  for="networkSecurityEnabled">Enable advanced network security</label>
-                <div class="col-lg-1 checkbox">
-                  <input type="checkbox" id="networkSecurityEnabled"
-                    name="networkSecurityEnabled" {{if .NetworkSecurityEnabled}} checked{{end}}>
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label">AP Address</label>
-                <div class="col-lg-6">
-                  <input type="text" class="form-control" name="apAddress" value="{{.ApAddress}}" placeholder="10.0.100.2">
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label">AP API Password</label>
-                <div class="col-lg-6">
-                  <input type="password" class="form-control" name="apPassword" value="{{.ApPassword}}">
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label">AP Channel (6 GHz)</label>
-                <div class="col-lg-6">
-                  <select class="form-select" name="apChannel" value="{{.ApChannel}}">
-                    {{range $i, $j := seq 29}}
-                    <option value="{{(add 5 (multiply $i 8))}}"
-                      {{if eq $.ApChannel (add 5 (multiply $i 8))}} selected{{end}}>
-                      {{(add 5 (multiply $i 8))}}
-                    </option>
-                    {{end}}
-                  </select>
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label">Switch Address</label>
-                <div class="col-lg-6">
-                  <input type="text" class="form-control" name="switchAddress" value="{{.SwitchAddress}}" placeholder="10.0.100.3">
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label">Switch Password</label>
-                <div class="col-lg-6">
-                  <input type="password" class="form-control" name="switchPassword" value="{{.SwitchPassword}}">
-                </div>
-              </div>
-            </fieldset>
-            <fieldset class="mb-4">
-              <legend>SCC Switch</legend>
-              <p>Enable this setting if you have an SSH-capable managed switch in your SCCs and want to run commands
-                to disable team ethernet ports while network reconfiguration is in progress. This setting only works
-                if advanced network security is enabled above.</p>
-              <div class="row mb-3">
-                <label class="col-lg-8 control-label"
-                  for="sccManagementEnabled">Enable SCC switch management</label>
-                <div class="col-lg-1 checkbox">
-                  <input type="checkbox" id="sccManagementEnabled"
-                    name="sccManagementEnabled" {{if .SCCManagementEnabled}} checked{{end}}>
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label">Red SCC Address</label>
-                <div class="col-lg-6">
-                  <input type="text" class="form-control" name="redSCCAddress" value="{{.RedSCCAddress}}" placeholder="10.0.100.48">
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label">Blue SCC Address</label>
-                <div class="col-lg-6">
-                  <input type="text" class="form-control" name="blueSCCAddress" value="{{.BlueSCCAddress}}" placeholder="10.0.100.49">
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label">SCC Username</label>
-                <div class="col-lg-6">
-                  <input type="text" class="form-control" name="sccUsername" value="{{.SCCUsername}}" placeholder="admin">
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label">SCC Password</label>
-                <div class="col-lg-6">
-                  <input type="password" class="form-control" name="sccPassword" value="{{.SCCPassword}}">
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label">SCC Enable Commands</label>
-                <div class="col-lg-6">
-                  <textarea class="form-control" name="sccUpCommands" rows="8">{{.SCCUpCommands}}</textarea>
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label">SCC Disable Commands</label>
-                <div class="col-lg-6">
-                  <textarea class="form-control" name="sccDownCommands" rows="8">{{.SCCDownCommands}}</textarea>
-                </div>
-              </div>
-            </fieldset>
-            <fieldset class="mb-4">
-              <legend>PLC</legend>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label">PLC Address</label>
-                <div class="col-lg-6">
-                  <input type="text" class="form-control" name="plcAddress" value="{{.PlcAddress}}" placeholder="10.0.100.40">
-                </div>
-              </div>
-            </fieldset>
-            <fieldset class="mb-4">
               <legend>Team Signs</legend>
               <p>
                 If you are using a set of the (2024+) official team number / timer signs, enter their two-digit IDs
@@ -348,13 +220,6 @@ UI for configuring event settings.
                 <div class="col-lg-6">
                   <input type="text" class="form-control" name="teamSignRed2Id"
                     value="{{if gt .TeamSignRed2Id 0}}{{.TeamSignRed2Id}}{{end}}" placeholder="52">
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-lg-6 control-label">Red 3 Sign ID</label>
-                <div class="col-lg-6">
-                  <input type="text" class="form-control" name="teamSignRed3Id"
-                    value="{{if gt .TeamSignRed3Id 0}}{{.TeamSignRed3Id}}{{end}}" placeholder="53">
                 </div>
               </div>
               <div class="row mb-3">
@@ -379,30 +244,10 @@ UI for configuring event settings.
                 </div>
               </div>
               <div class="row mb-3">
-                <label class="col-lg-6 control-label">Blue 3 Sign ID</label>
-                <div class="col-lg-6">
-                  <input type="text" class="form-control" name="teamSignBlue3Id"
-                    value="{{if gt .TeamSignBlue3Id 0}}{{.TeamSignBlue3Id}}{{end}}" placeholder="57">
-                </div>
-              </div>
-              <div class="row mb-3">
                 <label class="col-lg-6 control-label">Blue Timer Sign ID</label>
                 <div class="col-lg-6">
                   <input type="text" class="form-control" name="teamSignBlueTimerId"
                     value="{{if gt .TeamSignBlueTimerId 0}}{{.TeamSignBlueTimerId}}{{end}}" placeholder="54">
-                </div>
-              </div>
-            </fieldset>
-            <fieldset class="mb-4">
-              <legend>Driver Station Lite Mode</legend>
-              <p>When enabled, the Driver Station software will prompt teams to allow Cheesy Arena to connect rather
-                than automatically connecting, and will preserve the ability to use the spacebar for robot
-                disablement. Consider enabling this setting when physical E-Stop buttons are not present.</p>
-              <div class="row mb-3">
-                <label class="col-lg-8 control-label" for="useLiteUdpPort"> Lite Mode </label>
-                <div class="col-lg-1 checkbox">
-                  <input type="checkbox" id="useLiteUdpPort" name="useLiteUdpPort"
-                    {{if .UseLiteUdpPort}} checked{{end}}>
                 </div>
               </div>
             </fieldset>
@@ -415,19 +260,6 @@ UI for configuring event settings.
                 <label class="col-lg-8 control-label" for="autoAudienceDisplayEnabled">Enabled automated audience display</label>
                 <div class="col-lg-1 checkbox">
                   <input type="checkbox" name="autoAudienceDisplayEnabled" {{if .AutoAudienceDisplayEnabled}} checked{{end}}>
-                </div>
-              </div>
-            </fieldset>
-            <fieldset class="mb-4">
-              <legend>Nexus</legend>
-              <p>Automatically populate practice and playoff match lineups from Nexus. Uses the event code configured
-                on the Event tab.</p>
-              <p>When enabled, Nexus is the source of truth for lineups and they can not
-                be overridden by the scorekeeper. To make changes, update the lineup in Nexus or disable this setting.</p>
-              <div class="row mb-3">
-                <label class="col-lg-8 control-label" for="nexusEnabled">Enable pulling lineup from Nexus</label>
-                <div class="col-lg-1 checkbox">
-                  <input type="checkbox" id="nexusEnabled" name="nexusEnabled" {{if .NexusEnabled}} checked{{end}}>
                 </div>
               </div>
             </fieldset>

@@ -204,11 +204,9 @@ func (web *Web) allianceSelectionFinalizeHandler(w http.ResponseWriter, r *http.
 
 	// Save alliances to the database.
 	for _, alliance := range web.arena.AllianceSelectionAlliances {
-		// Populate the initial lineup according to the tournament rules (alliance captain in the middle, first pick on
-		// the left, second pick on the right).
+		// Populate the initial lineup with the alliance captain and its first pick.
 		alliance.Lineup[0] = alliance.TeamIds[1]
 		alliance.Lineup[1] = alliance.TeamIds[0]
-		alliance.Lineup[2] = alliance.TeamIds[2]
 
 		err := web.arena.Database.CreateAlliance(&alliance)
 		if err != nil {

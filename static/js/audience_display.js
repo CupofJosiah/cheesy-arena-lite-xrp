@@ -127,7 +127,6 @@ const handleScorePosted = function (data) {
   $(`#${redSide}FinalAlliance`).text("Alliance " + data.Match.PlayoffRedAlliance);
   setTeamInfo(redSide, 1, data.Match.Red1, data.RedCards, data.RedRankings);
   setTeamInfo(redSide, 2, data.Match.Red2, data.RedCards, data.RedRankings);
-  setTeamInfo(redSide, 3, data.Match.Red3, data.RedCards, data.RedRankings);
   if (data.RedOffFieldTeamIds.length > 0) {
     setTeamInfo(redSide, 4, data.RedOffFieldTeamIds[0], data.RedCards, data.RedRankings);
   } else {
@@ -145,7 +144,6 @@ const handleScorePosted = function (data) {
   $(`#${blueSide}FinalAlliance`).text("Alliance " + data.Match.PlayoffBlueAlliance);
   setTeamInfo(blueSide, 1, data.Match.Blue1, data.BlueCards, data.BlueRankings);
   setTeamInfo(blueSide, 2, data.Match.Blue2, data.BlueCards, data.BlueRankings);
-  setTeamInfo(blueSide, 3, data.Match.Blue3, data.BlueCards, data.BlueRankings);
   if (data.BlueOffFieldTeamIds.length > 0) {
     setTeamInfo(blueSide, 4, data.BlueOffFieldTeamIds[0], data.BlueCards, data.BlueRankings);
   } else {

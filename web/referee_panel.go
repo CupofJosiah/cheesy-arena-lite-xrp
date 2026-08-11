@@ -75,33 +75,50 @@ func (web *Web) refereePanelWebsocketHandler(w http.ResponseWriter, r *http.Requ
 		}
 
 		switch messageType {
-		case "foulPoints":
+		case "penalties":
+			// Sets the absolute penalty counts for both alliances, as typed into the referee panel.
 			args := struct {
-				RedFoulPointsAgainst  int
-				BlueFoulPointsAgainst int
+				RedMinorPenalties  int
+				RedMajorPenalties  int
+				BlueMinorPenalties int
+				BlueMajorPenalties int
 			}{}
 			err = mapstructure.Decode(data, &args)
 			if err != nil {
 				writeWebsocketError(ws, err.Error())
 				continue
 			}
-			web.arena.RedRealtimeScore.CurrentScore.FoulPointsAgainst = args.RedFoulPointsAgainst
-			web.arena.BlueRealtimeScore.CurrentScore.FoulPointsAgainst = args.BlueFoulPointsAgainst
+			redScore := &web.arena.RedRealtimeScore.CurrentScore
+			blueScore := &web.arena.BlueRealtimeScore.CurrentScore
+			redScore.MinorPenalties = max(args.RedMinorPenalties, 0)
+			redScore.MajorPenalties = max(args.RedMajorPenalties, 0)
+			blueScore.MinorPenalties = max(args.BlueMinorPenalties, 0)
+			blueScore.MajorPenalties = max(args.BlueMajorPenalties, 0)
 			web.arena.RealtimeScoreNotifier.Notify()
-		case "foulPointsAgainst":
+		case "addPenalty":
+			// Adjusts one alliance's count of a single penalty tier, as tapped on the referee panel.
 			args := struct {
 				Alliance string
-				Points   int
+				Tier     string
+				Delta    int
 			}{}
 			err = mapstructure.Decode(data, &args)
 			if err != nil {
 				writeWebsocketError(ws, err.Error())
 				continue
 			}
+			score := &web.arena.BlueRealtimeScore.CurrentScore
 			if args.Alliance == "red" {
-				web.arena.RedRealtimeScore.CurrentScore.FoulPointsAgainst = args.Points
-			} else {
-				web.arena.BlueRealtimeScore.CurrentScore.FoulPointsAgainst = args.Points
+				score = &web.arena.RedRealtimeScore.CurrentScore
+			}
+			switch args.Tier {
+			case "minor":
+				score.MinorPenalties = max(score.MinorPenalties+args.Delta, 0)
+			case "major":
+				score.MajorPenalties = max(score.MajorPenalties+args.Delta, 0)
+			default:
+				writeWebsocketError(ws, fmt.Sprintf("Invalid penalty tier '%s'.", args.Tier))
+				continue
 			}
 			web.arena.RealtimeScoreNotifier.Notify()
 		case "card":
@@ -128,11 +145,9 @@ func (web *Web) refereePanelWebsocketHandler(w http.ResponseWriter, r *http.Requ
 				if args.Alliance == "red" {
 					cards[strconv.Itoa(web.arena.CurrentMatch.Red1)] = args.Card
 					cards[strconv.Itoa(web.arena.CurrentMatch.Red2)] = args.Card
-					cards[strconv.Itoa(web.arena.CurrentMatch.Red3)] = args.Card
 				} else {
 					cards[strconv.Itoa(web.arena.CurrentMatch.Blue1)] = args.Card
 					cards[strconv.Itoa(web.arena.CurrentMatch.Blue2)] = args.Card
-					cards[strconv.Itoa(web.arena.CurrentMatch.Blue3)] = args.Card
 				}
 			} else {
 				cards[strconv.Itoa(args.TeamId)] = args.Card

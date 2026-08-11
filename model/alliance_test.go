@@ -4,6 +4,7 @@
 package model
 
 import (
+	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -21,7 +22,7 @@ func TestAllianceCrud(t *testing.T) {
 	db := setupTestDb(t)
 	defer db.Close()
 
-	alliance := Alliance{Id: 3, TeamIds: []int{254, 1114, 296, 1503}, Lineup: [3]int{1114, 254, 296}}
+	alliance := Alliance{Id: 3, TeamIds: []int{254, 1114, 296, 1503}, Lineup: [game.TeamsPerAlliance]int{1114, 254}}
 	assert.Nil(t, db.CreateAlliance(&alliance))
 	alliance2, err := db.GetAllianceById(3)
 	assert.Nil(t, err)
@@ -43,20 +44,20 @@ func TestUpdateAllianceFromMatch(t *testing.T) {
 	db := setupTestDb(t)
 	defer db.Close()
 
-	alliance := Alliance{Id: 3, TeamIds: []int{254, 1114, 296, 1503}, Lineup: [3]int{1114, 254, 296}}
+	alliance := Alliance{Id: 3, TeamIds: []int{254, 1114, 296, 1503}, Lineup: [game.TeamsPerAlliance]int{1114, 254}}
 	assert.Nil(t, db.CreateAlliance(&alliance))
-	assert.Nil(t, db.UpdateAllianceFromMatch(3, [3]int{1503, 188, 296}))
+	assert.Nil(t, db.UpdateAllianceFromMatch(3, [game.TeamsPerAlliance]int{1503, 188}))
 	alliance2, err := db.GetAllianceById(3)
 	assert.Nil(t, err)
 	assert.Equal(t, []int{254, 1114, 296, 1503, 188}, alliance2.TeamIds)
-	assert.Equal(t, [3]int{1503, 188, 296}, alliance2.Lineup)
+	assert.Equal(t, [game.TeamsPerAlliance]int{1503, 188}, alliance2.Lineup)
 }
 
 func TestTruncateAllianceTeams(t *testing.T) {
 	db := setupTestDb(t)
 	defer db.Close()
 
-	alliance := Alliance{Id: 1, TeamIds: []int{148, 118, 125}, Lineup: [3]int{118, 148, 125}}
+	alliance := Alliance{Id: 1, TeamIds: []int{148, 118, 125}, Lineup: [game.TeamsPerAlliance]int{118, 148}}
 	assert.Nil(t, db.CreateAlliance(&alliance))
 	assert.Nil(t, db.TruncateAlliances())
 	alliance2, err := db.GetAllianceById(1)
@@ -93,23 +94,21 @@ func TestGetOffFieldTeamIds(t *testing.T) {
 		PlayoffBlueAlliance: 2,
 		Red1:                469,
 		Red2:                254,
-		Red3:                2848,
 		Blue1:               1619,
 		Blue2:               1718,
-		Blue3:               2451,
 	}
 
 	redOffFieldTeams, blueOffFieldTeams, err := db.GetOffFieldTeamIds(match)
 	assert.Nil(t, err)
-	assert.Equal(t, []int{74, 3175}, redOffFieldTeams)
-	assert.Equal(t, []int{}, blueOffFieldTeams)
+	assert.Equal(t, []int{2848, 74, 3175}, redOffFieldTeams)
+	assert.Equal(t, []int{2451}, blueOffFieldTeams)
 
 	match.Red1 = 74
 	match.Red2 = 3175
 	redOffFieldTeams, blueOffFieldTeams, err = db.GetOffFieldTeamIds(match)
 	assert.Nil(t, err)
-	assert.Equal(t, []int{254, 469}, redOffFieldTeams)
-	assert.Equal(t, []int{}, blueOffFieldTeams)
+	assert.Equal(t, []int{254, 469, 2848}, redOffFieldTeams)
+	assert.Equal(t, []int{2451}, blueOffFieldTeams)
 
 	match.PlayoffRedAlliance = 0
 	match.PlayoffBlueAlliance = 0
@@ -123,13 +122,11 @@ func TestGetOffFieldTeamIds(t *testing.T) {
 		PlayoffBlueAlliance: 1,
 		Red1:                1718,
 		Red2:                2451,
-		Red3:                1619,
 		Blue1:               3175,
 		Blue2:               74,
-		Blue3:               2848,
 	}
 	redOffFieldTeams, blueOffFieldTeams, err = db.GetOffFieldTeamIds(match)
 	assert.Nil(t, err)
-	assert.Equal(t, []int{}, redOffFieldTeams)
-	assert.Equal(t, []int{254, 469}, blueOffFieldTeams)
+	assert.Equal(t, []int{1619}, redOffFieldTeams)
+	assert.Equal(t, []int{254, 469, 2848}, blueOffFieldTeams)
 }

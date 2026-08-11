@@ -47,12 +47,10 @@ func (web *Web) matchPlayHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	data := struct {
 		*model.EventSettings
-		PlcIsEnabled          bool
-		PlcArmorBlockStatuses map[string]bool
+		AllianceStationIds []string
 	}{
 		web.arena.EventSettings,
-		web.arena.Plc.IsEnabled(),
-		web.arena.Plc.GetArmorBlockStatuses(),
+		field.AllianceStationIds,
 	}
 	err = template.ExecuteTemplate(w, "base", data)
 	if err != nil {
@@ -234,17 +232,15 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 			args := struct {
 				Red1  int
 				Red2  int
-				Red3  int
 				Blue1 int
 				Blue2 int
-				Blue3 int
 			}{}
 			err = mapstructure.Decode(data, &args)
 			if err != nil {
 				writeWebsocketError(ws, err.Error())
 				continue
 			}
-			err = web.arena.SubstituteTeams(args.Red1, args.Red2, args.Red3, args.Blue1, args.Blue2, args.Blue3)
+			err = web.arena.SubstituteTeams(args.Red1, args.Red2, args.Blue1, args.Blue2)
 			if err != nil {
 				writeWebsocketError(ws, err.Error())
 				continue
@@ -262,6 +258,21 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 			web.arena.AllianceStations[station].Bypass = !web.arena.AllianceStations[station].Bypass
 			if err = ws.WriteNotifier(web.arena.ArenaStatusNotifier); err != nil {
 				log.Println(err)
+			}
+		case "toggleReady":
+			station, ok := data.(string)
+			if !ok {
+				writeWebsocketError(ws, fmt.Sprintf("Failed to parse '%s' message.", messageType))
+				continue
+			}
+			allianceStation, ok := web.arena.AllianceStations[station]
+			if !ok {
+				writeWebsocketError(ws, fmt.Sprintf("Invalid alliance station '%s'.", station))
+				continue
+			}
+			if err = web.arena.SetStationReady(station, !allianceStation.Ready); err != nil {
+				writeWebsocketError(ws, err.Error())
+				continue
 			}
 		case "startMatch":
 			args := struct {
@@ -465,12 +476,12 @@ func (web *Web) commitMatchScore(match *model.Match, matchResult *model.MatchRes
 
 		if match.ShouldUpdatePlayoffMatches() {
 			if err = web.arena.Database.UpdateAllianceFromMatch(
-				match.PlayoffRedAlliance, [3]int{match.Red1, match.Red2, match.Red3},
+				match.PlayoffRedAlliance, [game.TeamsPerAlliance]int{match.Red1, match.Red2},
 			); err != nil {
 				return err
 			}
 			if err = web.arena.Database.UpdateAllianceFromMatch(
-				match.PlayoffBlueAlliance, [3]int{match.Blue1, match.Blue2, match.Blue3},
+				match.PlayoffBlueAlliance, [game.TeamsPerAlliance]int{match.Blue1, match.Blue2},
 			); err != nil {
 				return err
 			}

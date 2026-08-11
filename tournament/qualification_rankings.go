@@ -34,17 +34,11 @@ func CalculateRankings(database *model.Database, preservePreviousRank bool) (gam
 		if !match.Red2IsSurrogate {
 			addMatchResultToRankings(rankings, match.Red2, matchResult, true)
 		}
-		if !match.Red3IsSurrogate {
-			addMatchResultToRankings(rankings, match.Red3, matchResult, true)
-		}
 		if !match.Blue1IsSurrogate {
 			addMatchResultToRankings(rankings, match.Blue1, matchResult, false)
 		}
 		if !match.Blue2IsSurrogate {
 			addMatchResultToRankings(rankings, match.Blue2, matchResult, false)
-		}
-		if !match.Blue3IsSurrogate {
-			addMatchResultToRankings(rankings, match.Blue3, matchResult, false)
 		}
 	}
 

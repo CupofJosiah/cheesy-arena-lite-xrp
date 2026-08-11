@@ -5,21 +5,32 @@
 
 package game
 
+// Auto 24, teleop 92, endgame 30 (match points 146); concedes 35 penalty points to the opponent.
 func TestScore1() *Score {
 	return &Score{
-		AutoPoints:        18,
-		TeleopPoints:      90,
-		PostMatchPoints:   30,
-		FoulPointsAgainst: 24,
+		FactoryParks:       1,
+		AutoCrops:          2,
+		SilosDumped:        1,
+		TeleopCrops:        6,
+		CityLimitsProducts: 2,
+		CityCenterProducts: 2,
+		BarnParks:          1,
+		BarnHangs:          1,
+		MinorPenalties:     1,
+		MajorPenalties:     1,
 	}
 }
 
+// Auto 41, teleop 133, endgame 50 (match points 224); concedes no penalty points.
 func TestScore2() *Score {
 	return &Score{
-		AutoPoints:        35,
-		TeleopPoints:      148,
-		PostMatchPoints:   60,
-		FoulPointsAgainst: 0,
+		FactoryParks:       2,
+		AutoCrops:          3,
+		SilosDumped:        2,
+		TeleopCrops:        9,
+		CityLimitsProducts: 1,
+		CityCenterProducts: 4,
+		BarnHangs:          2,
 	}
 }
 

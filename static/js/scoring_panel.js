@@ -1,38 +1,86 @@
 // Copyright 2014 Team 254. All Rights Reserved.
 // Author: pat@patfairbank.com (Patrick Fairbank)
 //
-// Client-side logic for the generic scoring interface.
+// Client-side logic for the Iron Acres scoring interface.
 
 var websocket;
 let committed = false;
 let scoringAvailable = false;
 let commitAvailable = false;
 
-const parseScoreInput = function (selector) {
-  const value = parseInt($(selector).val(), 10);
-  return Number.isFinite(value) && value >= 0 ? value : 0;
+// Element counts entered on this panel, mirrored from the server on every realtime score update.
+const scoreFields = [
+  "FactoryParks",
+  "AutoCrops",
+  "SilosDumped",
+  "TeleopCrops",
+  "CityLimitsProducts",
+  "CityCenterProducts",
+  "BarnParks",
+  "BarnHangs",
+];
+
+// Point values from section 5.2 of the manual, used only to preview totals before the server responds.
+const pointValues = {
+  FactoryParks: 5,
+  AutoCrops: 7,
+  SilosDumped: 5,
+  TeleopCrops: 7,
+  CityLimitsProducts: 10,
+  CityCenterProducts: 15,
+  BarnParks: 5,
+  BarnHangs: 25,
 };
 
+const localScore = {
+  red: emptyAllianceScore(),
+  blue: emptyAllianceScore(),
+};
+
+function emptyAllianceScore() {
+  const score = {};
+  scoreFields.forEach((field) => (score[field] = 0));
+  return score;
+}
+
 const scoreMessage = function () {
-  return {
-    RedAuto: parseScoreInput("#redAuto"),
-    RedTeleop: parseScoreInput("#redTeleop"),
-    RedPostMatch: parseScoreInput("#redPostMatch"),
-    BlueAuto: parseScoreInput("#blueAuto"),
-    BlueTeleop: parseScoreInput("#blueTeleop"),
-    BluePostMatch: parseScoreInput("#bluePostMatch"),
-  };
+  return { Red: localScore.red, Blue: localScore.blue };
 };
 
 const sendScore = function () {
   websocket.send("score", scoreMessage());
 };
 
-const setInputValue = function (selector, value) {
-  const input = $(selector);
-  if (!input.is(":focus")) {
-    input.val(value || 0);
+// Adjusts one element count and pushes the whole score to the server.
+const adjustScore = function (alliance, field, delta) {
+  if (!scoringAvailable) {
+    return;
   }
+  localScore[alliance][field] = Math.max(localScore[alliance][field] + delta, 0);
+  renderAlliance(alliance);
+  sendScore();
+};
+
+const renderAlliance = function (alliance) {
+  const score = localScore[alliance];
+  scoreFields.forEach((field) => {
+    $(`#${alliance}-${field}`).text(score[field]);
+  });
+
+  const autoPoints =
+    score.FactoryParks * pointValues.FactoryParks +
+    score.AutoCrops * pointValues.AutoCrops +
+    score.SilosDumped * pointValues.SilosDumped;
+  const teleopPoints =
+    score.TeleopCrops * pointValues.TeleopCrops +
+    score.CityLimitsProducts * pointValues.CityLimitsProducts +
+    score.CityCenterProducts * pointValues.CityCenterProducts;
+  const endgamePoints = score.BarnParks * pointValues.BarnParks + score.BarnHangs * pointValues.BarnHangs;
+
+  $(`#${alliance}-autoPoints`).text(autoPoints);
+  $(`#${alliance}-teleopPoints`).text(teleopPoints);
+  $(`#${alliance}-endgamePoints`).text(endgamePoints);
+  $(`#${alliance}-totalPoints`).text(autoPoints + teleopPoints + endgamePoints);
 };
 
 const handleMatchLoad = function (data) {
@@ -68,17 +116,18 @@ const resetLocalState = function () {
 };
 
 const updateUIMode = function () {
-  $("input[type=number]").prop("disabled", !scoringAvailable);
+  $(".counter-button").prop("disabled", !scoringAvailable);
   $("#commit").prop("disabled", !commitAvailable);
 };
 
 const handleRealtimeScore = function (data) {
-  setInputValue("#redAuto", data.Red.Score.AutoPoints);
-  setInputValue("#redTeleop", data.Red.Score.TeleopPoints);
-  setInputValue("#redPostMatch", data.Red.Score.PostMatchPoints);
-  setInputValue("#blueAuto", data.Blue.Score.AutoPoints);
-  setInputValue("#blueTeleop", data.Blue.Score.TeleopPoints);
-  setInputValue("#bluePostMatch", data.Blue.Score.PostMatchPoints);
+  ["red", "blue"].forEach((alliance) => {
+    const serverScore = alliance === "red" ? data.Red.Score : data.Blue.Score;
+    scoreFields.forEach((field) => {
+      localScore[alliance][field] = serverScore[field] || 0;
+    });
+    renderAlliance(alliance);
+  });
 };
 
 const commitMatchScore = function () {
@@ -93,7 +142,8 @@ const commitMatchScore = function () {
 
 $(function () {
   resetLocalState();
-  $("input[type=number]").on("input", sendScore);
+  renderAlliance("red");
+  renderAlliance("blue");
 
   websocket = new CheesyWebsocket("/panels/scoring/websocket", {
     matchLoad: function (event) {

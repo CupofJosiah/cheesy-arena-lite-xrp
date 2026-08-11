@@ -18,7 +18,7 @@ var MatchTiming = struct {
 	TeleopDurationSec   int
 	WarningSoundTimeSec int
 	TimeoutDurationSec  int
-}{20, 3, 140, 30, 0}
+}{10, 3, 150, 30, 0}
 
 func GetDurationToAutoEnd() time.Duration {
 	return time.Duration(MatchTiming.AutoDurationSec) * time.Second

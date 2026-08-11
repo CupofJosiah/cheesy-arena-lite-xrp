@@ -6,8 +6,6 @@
 package model
 
 import (
-	"strings"
-
 	"github.com/Team254/cheesy-arena-lite/game"
 )
 
@@ -18,26 +16,6 @@ const (
 	SingleEliminationPlayoff
 )
 
-// Configured here to avoid circular import dependencies.
-var (
-	sccDefaultUpCommands = []string{
-		"configure terminal",
-		"interface range gigabitEthernet 1/2-4",
-		"no shutdown",
-		"exit",
-		"exit",
-		"exit",
-	}
-	sccDefaultDownCommands = []string{
-		"configure terminal",
-		"interface range gigabitEthernet 1/2-4",
-		"shutdown",
-		"exit",
-		"exit",
-		"exit",
-	}
-)
-
 type EventSettings struct {
 	Id                               int `db:"id"`
 	Name                             string
@@ -46,37 +24,14 @@ type EventSettings struct {
 	SelectionRound2Order             string
 	SelectionRound3Order             string
 	SelectionShowUnpickedTeams       bool
-	TbaDownloadEnabled               bool
-	TbaPublishingEnabled             bool
-	TbaEventCode                     string
-	TbaSecretId                      string
-	TbaSecret                        string
 	AutoAudienceDisplayEnabled       bool
-	NexusEnabled                     bool
-	NetworkSecurityEnabled           bool
-	ApAddress                        string
-	ApPassword                       string
-	ApChannel                        int
-	SwitchAddress                    string
-	SwitchPassword                   string
-	SCCManagementEnabled             bool
-	RedSCCAddress                    string
-	BlueSCCAddress                   string
-	SCCUsername                      string
-	SCCPassword                      string
-	SCCUpCommands                    string
-	SCCDownCommands                  string
-	PlcAddress                       string
 	AdminPassword                    string
 	TeamSignRed1Id                   int
 	TeamSignRed2Id                   int
-	TeamSignRed3Id                   int
 	TeamSignRedTimerId               int
 	TeamSignBlue1Id                  int
 	TeamSignBlue2Id                  int
-	TeamSignBlue3Id                  int
 	TeamSignBlueTimerId              int
-	UseLiteUdpPort                   bool
 	BlackmagicAddresses              string
 	CompanionAddress                 string
 	CompanionPort                    int
@@ -128,10 +83,6 @@ func (database *Database) GetEventSettings() (*EventSettings, error) {
 		SelectionRound2Order:       "L",
 		SelectionRound3Order:       "",
 		SelectionShowUnpickedTeams: true,
-		TbaDownloadEnabled:         true,
-		ApChannel:                  36,
-		SCCUpCommands:              strings.Join(sccDefaultUpCommands, "\n"),
-		SCCDownCommands:            strings.Join(sccDefaultDownCommands, "\n"),
 		CompanionAddress:           "",
 		AutoDurationSec:            game.MatchTiming.AutoDurationSec,
 		PauseDurationSec:           game.MatchTiming.PauseDurationSec,
