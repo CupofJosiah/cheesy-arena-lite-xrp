@@ -441,7 +441,7 @@ func (web *Web) schedulePdfReportHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	// The widths of the table columns in mm, stored here so that they can be referenced for each row.
-	colWidths := map[string]float64{"Time": 35, "Match": 40, "Team": 20}
+	colWidths := map[string]float64{"Time": 35, "Match": 40, "Team": 30}
 	rowHeight := 6.5
 
 	pdf := newReportPdf()
@@ -455,10 +455,8 @@ func (web *Web) schedulePdfReportHandler(w http.ResponseWriter, r *http.Request)
 	pdf.CellFormat(colWidths["Match"], rowHeight, "Match", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(colWidths["Team"], rowHeight, "Red 1", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(colWidths["Team"], rowHeight, "Red 2", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["Team"], rowHeight, "Red 3", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(colWidths["Team"], rowHeight, "Blue 1", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["Team"], rowHeight, "Blue 2", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["Team"], rowHeight, "Blue 3", "1", 1, "C", true, 0, "")
+	pdf.CellFormat(colWidths["Team"], rowHeight, "Blue 2", "1", 1, "C", true, 0, "")
 	pdf.SetFont("Arial", "", 10)
 	for _, match := range matches {
 		// Render break if there is one before this match.
@@ -467,7 +465,7 @@ func (web *Web) schedulePdfReportHandler(w http.ResponseWriter, r *http.Request)
 			formattedTime := scheduledBreak.Time.Local().Format("Mon 1/02 03:04 PM")
 			description := fmt.Sprintf("%s (%d minutes)", scheduledBreak.Description, scheduledBreak.DurationSec/60)
 			pdf.CellFormat(colWidths["Time"], rowHeight, formattedTime, "1", 0, "C", false, 0, "")
-			pdf.CellFormat(colWidths["Match"]+6*colWidths["Team"], rowHeight, description, "1", 1, "C", false, 0, "")
+			pdf.CellFormat(colWidths["Match"]+4*colWidths["Team"], rowHeight, description, "1", 1, "C", false, 0, "")
 			breakIndex++
 		}
 
