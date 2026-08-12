@@ -127,10 +127,11 @@ const handleScorePosted = function (data) {
   $(`#${redSide}FinalAlliance`).text("Alliance " + data.Match.PlayoffRedAlliance);
   setTeamInfo(redSide, 1, data.Match.Red1, data.RedCards, data.RedRankings);
   setTeamInfo(redSide, 2, data.Match.Red2, data.RedCards, data.RedRankings);
+  // The third row is the off-field team, if there is one; there is no third robot on the field.
   if (data.RedOffFieldTeamIds.length > 0) {
-    setTeamInfo(redSide, 4, data.RedOffFieldTeamIds[0], data.RedCards, data.RedRankings);
+    setTeamInfo(redSide, 3, data.RedOffFieldTeamIds[0], data.RedCards, data.RedRankings);
   } else {
-    setTeamInfo(redSide, 4, 0, data.RedCards, data.RedRankings);
+    setTeamInfo(redSide, 3, "", data.RedCards, data.RedRankings);
   }
   setFinalScoreBreakdown(redSide, data.RedScoreSummary);
   $(`#${redSide}FinalRankingPoints`).html(data.RedRankingPoints);
@@ -145,9 +146,9 @@ const handleScorePosted = function (data) {
   setTeamInfo(blueSide, 1, data.Match.Blue1, data.BlueCards, data.BlueRankings);
   setTeamInfo(blueSide, 2, data.Match.Blue2, data.BlueCards, data.BlueRankings);
   if (data.BlueOffFieldTeamIds.length > 0) {
-    setTeamInfo(blueSide, 4, data.BlueOffFieldTeamIds[0], data.BlueCards, data.BlueRankings);
+    setTeamInfo(blueSide, 3, data.BlueOffFieldTeamIds[0], data.BlueCards, data.BlueRankings);
   } else {
-    setTeamInfo(blueSide, 4, 0, data.BlueCards, data.BlueRankings);
+    setTeamInfo(blueSide, 3, "", data.BlueCards, data.BlueRankings);
   }
   setFinalScoreBreakdown(blueSide, data.BlueScoreSummary);
   $(`#${blueSide}FinalRankingPoints`).html(data.BlueRankingPoints);
