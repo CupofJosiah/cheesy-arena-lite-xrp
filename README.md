@@ -24,6 +24,14 @@ Teams may use this freely for practice, scrimmages, and off-season events. See [
 Any IP address works; nothing on the field needs to reach the server except the browsers running the panels and
 displays.
 
+## Team numbers
+
+Team numbers are alphanumeric, not just digits, so an event can run several teams from the same school as `12A`,
+`12B`, and so on. A team number may contain letters and digits only, up to six characters, and is normalized to
+uppercase when entered — `12a` and `12A` are the same team. Team numbers sort naturally, so `9B` comes before `10A`.
+
+Databases created before this change still load; team numbers stored as plain numbers are read back unchanged.
+
 ## Match flow
 
 | Phase | Length | Notes |

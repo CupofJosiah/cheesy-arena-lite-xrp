@@ -11,9 +11,9 @@ import (
 
 func TestCreateOrUpdateAwardWithIntro(t *testing.T) {
 	database := setupTestDb(t)
-	database.CreateTeam(&model.Team{Id: 254, Nickname: "Teh Chezy Pofs"})
+	database.CreateTeam(&model.Team{Id: "254", Nickname: "Teh Chezy Pofs"})
 
-	award := model.Award{0, model.JudgedAward, "Safety Award", 0, ""}
+	award := model.Award{0, model.JudgedAward, "Safety Award", "", ""}
 	err := CreateOrUpdateAward(database, &award, true)
 	assert.Nil(t, err)
 	award2, _ := database.GetAwardById(award.Id)
@@ -27,7 +27,7 @@ func TestCreateOrUpdateAwardWithIntro(t *testing.T) {
 	}
 
 	award.AwardName = "Saftey Award"
-	award.TeamId = 254
+	award.TeamId = "254"
 	err = CreateOrUpdateAward(database, &award, true)
 	assert.Nil(t, err)
 	award2, _ = database.GetAwardById(award.Id)
@@ -50,11 +50,11 @@ func TestCreateOrUpdateAwardWithIntro(t *testing.T) {
 
 func TestCreateOrUpdateAwardWithoutIntro(t *testing.T) {
 	database := setupTestDb(t)
-	database.CreateTeam(&model.Team{Id: 254, Nickname: "Teh Chezy Pofs"})
+	database.CreateTeam(&model.Team{Id: "254", Nickname: "Teh Chezy Pofs"})
 	otherLowerThird := model.LowerThird{TopText: "Marco", BottomText: "Polo"}
 	database.CreateLowerThird(&otherLowerThird)
 
-	award := model.Award{0, model.WinnerAward, "Winner", 0, "Bob Dorough"}
+	award := model.Award{0, model.WinnerAward, "Winner", "", "Bob Dorough"}
 	err := CreateOrUpdateAward(database, &award, false)
 	assert.Nil(t, err)
 	award2, _ := database.GetAwardById(award.Id)
@@ -66,7 +66,7 @@ func TestCreateOrUpdateAwardWithoutIntro(t *testing.T) {
 		assert.Equal(t, "Bob Dorough", lowerThirds[1].BottomText)
 	}
 
-	award.TeamId = 254
+	award.TeamId = "254"
 	err = CreateOrUpdateAward(database, &award, false)
 	assert.Nil(t, err)
 	award2, _ = database.GetAwardById(award.Id)
@@ -91,27 +91,27 @@ func TestCreateOrUpdateAwardWithoutIntro(t *testing.T) {
 func TestCreateOrUpdateWinnerAndFinalistAwards(t *testing.T) {
 	database := setupTestDb(t)
 	CreateTestAlliances(database, 2)
-	database.CreateTeam(&model.Team{Id: 101})
-	database.CreateTeam(&model.Team{Id: 102})
-	database.CreateTeam(&model.Team{Id: 103})
-	database.CreateTeam(&model.Team{Id: 104})
-	database.CreateTeam(&model.Team{Id: 201})
-	database.CreateTeam(&model.Team{Id: 202})
-	database.CreateTeam(&model.Team{Id: 203})
-	database.CreateTeam(&model.Team{Id: 204})
+	database.CreateTeam(&model.Team{Id: "101"})
+	database.CreateTeam(&model.Team{Id: "102"})
+	database.CreateTeam(&model.Team{Id: "103"})
+	database.CreateTeam(&model.Team{Id: "104"})
+	database.CreateTeam(&model.Team{Id: "201"})
+	database.CreateTeam(&model.Team{Id: "202"})
+	database.CreateTeam(&model.Team{Id: "203"})
+	database.CreateTeam(&model.Team{Id: "204"})
 
 	err := CreateOrUpdateWinnerAndFinalistAwards(database, 2, 1)
 	assert.Nil(t, err)
 	awards, _ := database.GetAllAwards()
 	if assert.Equal(t, 8, len(awards)) {
-		assert.Equal(t, model.Award{1, model.FinalistAward, "Finalist", 101, ""}, awards[0])
-		assert.Equal(t, model.Award{2, model.FinalistAward, "Finalist", 102, ""}, awards[1])
-		assert.Equal(t, model.Award{3, model.FinalistAward, "Finalist", 103, ""}, awards[2])
-		assert.Equal(t, model.Award{4, model.FinalistAward, "Finalist", 104, ""}, awards[3])
-		assert.Equal(t, model.Award{5, model.WinnerAward, "Winner", 201, ""}, awards[4])
-		assert.Equal(t, model.Award{6, model.WinnerAward, "Winner", 202, ""}, awards[5])
-		assert.Equal(t, model.Award{7, model.WinnerAward, "Winner", 203, ""}, awards[6])
-		assert.Equal(t, model.Award{8, model.WinnerAward, "Winner", 204, ""}, awards[7])
+		assert.Equal(t, model.Award{1, model.FinalistAward, "Finalist", "101", ""}, awards[0])
+		assert.Equal(t, model.Award{2, model.FinalistAward, "Finalist", "102", ""}, awards[1])
+		assert.Equal(t, model.Award{3, model.FinalistAward, "Finalist", "103", ""}, awards[2])
+		assert.Equal(t, model.Award{4, model.FinalistAward, "Finalist", "104", ""}, awards[3])
+		assert.Equal(t, model.Award{5, model.WinnerAward, "Winner", "201", ""}, awards[4])
+		assert.Equal(t, model.Award{6, model.WinnerAward, "Winner", "202", ""}, awards[5])
+		assert.Equal(t, model.Award{7, model.WinnerAward, "Winner", "203", ""}, awards[6])
+		assert.Equal(t, model.Award{8, model.WinnerAward, "Winner", "204", ""}, awards[7])
 	}
 	lowerThirds, _ := database.GetAllLowerThirds()
 	if assert.Equal(t, 10, len(lowerThirds)) {
@@ -129,14 +129,14 @@ func TestCreateOrUpdateWinnerAndFinalistAwards(t *testing.T) {
 	assert.Nil(t, err)
 	awards, _ = database.GetAllAwards()
 	if assert.Equal(t, 8, len(awards)) {
-		assert.Equal(t, model.Award{9, model.FinalistAward, "Finalist", 201, ""}, awards[0])
-		assert.Equal(t, model.Award{10, model.FinalistAward, "Finalist", 202, ""}, awards[1])
-		assert.Equal(t, model.Award{11, model.FinalistAward, "Finalist", 203, ""}, awards[2])
-		assert.Equal(t, model.Award{12, model.FinalistAward, "Finalist", 204, ""}, awards[3])
-		assert.Equal(t, model.Award{13, model.WinnerAward, "Winner", 101, ""}, awards[4])
-		assert.Equal(t, model.Award{14, model.WinnerAward, "Winner", 102, ""}, awards[5])
-		assert.Equal(t, model.Award{15, model.WinnerAward, "Winner", 103, ""}, awards[6])
-		assert.Equal(t, model.Award{16, model.WinnerAward, "Winner", 104, ""}, awards[7])
+		assert.Equal(t, model.Award{9, model.FinalistAward, "Finalist", "201", ""}, awards[0])
+		assert.Equal(t, model.Award{10, model.FinalistAward, "Finalist", "202", ""}, awards[1])
+		assert.Equal(t, model.Award{11, model.FinalistAward, "Finalist", "203", ""}, awards[2])
+		assert.Equal(t, model.Award{12, model.FinalistAward, "Finalist", "204", ""}, awards[3])
+		assert.Equal(t, model.Award{13, model.WinnerAward, "Winner", "101", ""}, awards[4])
+		assert.Equal(t, model.Award{14, model.WinnerAward, "Winner", "102", ""}, awards[5])
+		assert.Equal(t, model.Award{15, model.WinnerAward, "Winner", "103", ""}, awards[6])
+		assert.Equal(t, model.Award{16, model.WinnerAward, "Winner", "104", ""}, awards[7])
 	}
 	lowerThirds, _ = database.GetAllLowerThirds()
 	if assert.Equal(t, 10, len(lowerThirds)) {

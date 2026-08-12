@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -81,6 +82,10 @@ func readWebsocketMultiple(t *testing.T, ws *websocket.Websocket, count int) map
 		}
 	}
 	return messages
+}
+
+func teamId(number int) game.TeamId {
+	return game.TeamId(strconv.Itoa(number))
 }
 
 func setupTestWeb(t *testing.T) *Web {

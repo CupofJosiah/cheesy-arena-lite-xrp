@@ -60,7 +60,7 @@ UI for controlling the alliance selection process.
           <tr>
             <td class="col-lg-2">{{add $i 1}}</td>
             {{range $j, $allianceTeamId := $alliance.TeamIds}}
-            {{if eq $allianceTeamId 0}}
+            {{if eq $allianceTeamId ""}}
             <td class="col-lg-2">
               <input type="text" class="form-control input-sm" name="selection{{$i}}_{{$j}}" value="" {{if and (eq $i
                 $.NextRow) (eq $j $.NextCol)}}autofocus{{end}} oninput="$(this).parent().addClass('has-warning');"/>

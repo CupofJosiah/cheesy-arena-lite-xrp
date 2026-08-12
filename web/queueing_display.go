@@ -7,6 +7,7 @@ package web
 
 import (
 	"github.com/Team254/cheesy-arena-lite/field"
+	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/Team254/cheesy-arena-lite/websocket"
 	"net/http"
@@ -56,7 +57,7 @@ func (web *Web) queueingDisplayMatchLoadHandler(w http.ResponseWriter, r *http.R
 	}
 
 	var upcomingMatches []model.Match
-	var redOffFieldTeamsByMatch, blueOffFieldTeamsByMatch [][]int
+	var redOffFieldTeamsByMatch, blueOffFieldTeamsByMatch [][]game.TeamId
 	if err != nil {
 		handleWebErr(w, err)
 		return
@@ -92,8 +93,8 @@ func (web *Web) queueingDisplayMatchLoadHandler(w http.ResponseWriter, r *http.R
 
 	data := struct {
 		Matches           []model.Match
-		RedOffFieldTeams  [][]int
-		BlueOffFieldTeams [][]int
+		RedOffFieldTeams  [][]game.TeamId
+		BlueOffFieldTeams [][]game.TeamId
 	}{
 		upcomingMatches,
 		redOffFieldTeamsByMatch,

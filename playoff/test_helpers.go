@@ -6,10 +6,16 @@
 package playoff
 
 import (
+	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/stretchr/testify/assert"
+	"strconv"
 	"testing"
 )
+
+func teamId(number int) game.TeamId {
+	return game.TeamId(strconv.Itoa(number))
+}
 
 func setupTestDb(t *testing.T) *model.Database {
 	return model.SetupTestDb(t)
@@ -106,18 +112,18 @@ func assertMatch(
 	assert.Equal(t, redAlliance, match.PlayoffRedAlliance)
 	assert.Equal(t, blueAlliance, match.PlayoffBlueAlliance)
 	if redAlliance == 0 {
-		assert.Equal(t, 0, match.Red1)
-		assert.Equal(t, 0, match.Red2)
+		assert.Equal(t, game.TeamId(""), match.Red1)
+		assert.Equal(t, game.TeamId(""), match.Red2)
 	} else {
-		assert.Equal(t, 100*redAlliance+2, match.Red1)
-		assert.Equal(t, 100*redAlliance+1, match.Red2)
+		assert.Equal(t, teamId(100*redAlliance+2), match.Red1)
+		assert.Equal(t, teamId(100*redAlliance+1), match.Red2)
 	}
 	if blueAlliance == 0 {
-		assert.Equal(t, 0, match.Blue1)
-		assert.Equal(t, 0, match.Blue2)
+		assert.Equal(t, game.TeamId(""), match.Blue1)
+		assert.Equal(t, game.TeamId(""), match.Blue2)
 	} else {
-		assert.Equal(t, 100*blueAlliance+2, match.Blue1)
-		assert.Equal(t, 100*blueAlliance+1, match.Blue2)
+		assert.Equal(t, teamId(100*blueAlliance+2), match.Blue1)
+		assert.Equal(t, teamId(100*blueAlliance+1), match.Blue2)
 	}
 	assert.Equal(t, useTiebreakCriteria, match.UseTiebreakCriteria)
 	assert.Equal(t, tbaCompLevel, match.TbaMatchKey.CompLevel)

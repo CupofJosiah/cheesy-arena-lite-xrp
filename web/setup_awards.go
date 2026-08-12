@@ -6,6 +6,7 @@
 package web
 
 import (
+	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/Team254/cheesy-arena-lite/tournament"
 	"net/http"
@@ -62,7 +63,7 @@ func (web *Web) awardsPostHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		teamId, _ := strconv.Atoi(r.PostFormValue("teamId"))
+		teamId := game.TeamIdFromString(r.PostFormValue("teamId"))
 		award := model.Award{
 			Id:         awardId,
 			Type:       model.JudgedAward,

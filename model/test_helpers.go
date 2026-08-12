@@ -37,9 +37,17 @@ func BuildTestMatchResult(matchId int, playNumber int) *MatchResult {
 
 func BuildTestAlliances(database *Database) {
 	database.CreateAlliance(
-		&Alliance{Id: 2, TeamIds: []int{1718, 2451, 1619}, Lineup: [game.TeamsPerAlliance]int{2451, 1718}},
+		&Alliance{
+			Id:      2,
+			TeamIds: []game.TeamId{"1718", "2451", "1619"},
+			Lineup:  [game.TeamsPerAlliance]game.TeamId{"2451", "1718"},
+		},
 	)
 	database.CreateAlliance(
-		&Alliance{Id: 1, TeamIds: []int{254, 469, 2848, 74, 3175}, Lineup: [game.TeamsPerAlliance]int{469, 254}},
+		&Alliance{
+			Id:      1,
+			TeamIds: []game.TeamId{"254", "469", "2848", "74", "3175"},
+			Lineup:  [game.TeamsPerAlliance]game.TeamId{"469", "254"},
+		},
 	)
 }

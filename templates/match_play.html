@@ -223,7 +223,7 @@ UI for controlling match play and viewing team connection and field status.
 <div class="row mb-2" id="status{{.color}}{{.position}}">
   <div class="col-lg-1">{{.position}}</div>
   <div class="col-lg-3">
-    <input type="number" class="team-number form-control"
+    <input type="text" class="team-number form-control" maxlength="6"
       onchange="$('#substituteTeams').prop('disabled', false);">
   </div>
   <div class="col-lg-4 col-no-padding">

@@ -125,10 +125,9 @@ const setTestMatchName = function () {
   websocket.send("setTestMatchName", $("#testMatchName").val());
 };
 
-// Returns the integer team number entered into the team number input box for the given station, or 0 if it is empty.
+// Returns the team number entered into the team number input box for the given station, or "" if it is empty.
 const getTeamNumber = function (station) {
-  const teamId = $(`#status${station} .team-number`).val().trim();
-  return teamId ? parseInt(teamId) : 0;
+  return $(`#status${station} .team-number`).val().trim().toUpperCase();
 }
 
 // Handles a websocket message to update the alliance station status.

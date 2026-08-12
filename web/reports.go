@@ -96,7 +96,7 @@ func (web *Web) rankingsPdfReportHandler(w http.ResponseWriter, r *http.Request)
 		pdf.SetFont("Arial", "B", 10)
 		pdf.CellFormat(colWidths["Rank"], rowHeight, strconv.Itoa(ranking.Rank), "1", 0, "C", false, 0, "")
 		pdf.SetFont("Arial", "", 10)
-		pdf.CellFormat(colWidths["Team"], rowHeight, strconv.Itoa(ranking.TeamId), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(colWidths["Team"], rowHeight, string(ranking.TeamId), "1", 0, "C", false, 0, "")
 		pdf.CellFormat(colWidths["RP"], rowHeight, strconv.Itoa(ranking.RankingPoints), "1", 0, "C", false, 0, "")
 		pdf.CellFormat(colWidths["Match"], rowHeight, strconv.Itoa(ranking.MatchPoints), "1", 0, "C", false, 0, "")
 		pdf.CellFormat(colWidths["Auto"], rowHeight, strconv.Itoa(ranking.AutoPoints), "1", 0, "C", false, 0, "")
@@ -130,7 +130,7 @@ func (web *Web) rankingsPdfReportHandler(w http.ResponseWriter, r *http.Request)
 //
 // At events that run 4 team alliances, this will show all of the 3rd picks and
 // remaining teams.
-func (web *Web) findBackupTeams(rankings game.Rankings) (game.Rankings, map[int]bool, error) {
+func (web *Web) findBackupTeams(rankings game.Rankings) (game.Rankings, map[game.TeamId]bool, error) {
 	var pruned game.Rankings
 
 	alliances, err := web.arena.Database.GetAllAlliances()
@@ -142,8 +142,8 @@ func (web *Web) findBackupTeams(rankings game.Rankings) (game.Rankings, map[int]
 		return nil, nil, errors.New("backup teams report is unavailable until alliances have been selected")
 	}
 
-	pickedTeams := make(map[int]bool)
-	pickedBackups := make(map[int]bool)
+	pickedTeams := make(map[game.TeamId]bool)
+	pickedBackups := make(map[game.TeamId]bool)
 
 	for _, alliance := range alliances {
 		for i, allianceTeamId := range alliance.TeamIds {
@@ -170,7 +170,7 @@ func (web *Web) findBackupTeams(rankings game.Rankings) (game.Rankings, map[int]
 type backupTeam struct {
 	Rank          int
 	Called        bool
-	TeamId        int
+	TeamId        game.TeamId
 	RankingPoints int
 }
 
@@ -264,7 +264,7 @@ func (web *Web) backupsPdfReportHandler(w http.ResponseWriter, r *http.Request) 
 		pdf.CellFormat(colWidths["Rank"], rowHeight, strconv.Itoa(ranking.Rank), "1", 0, "C", false, 0, "")
 		pdf.CellFormat(colWidths["Called"], rowHeight, picked, "1", 0, "C", false, 0, "")
 		pdf.SetFont("Arial", "", 10)
-		pdf.CellFormat(colWidths["Team"], rowHeight, strconv.Itoa(ranking.TeamId), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(colWidths["Team"], rowHeight, string(ranking.TeamId), "1", 0, "C", false, 0, "")
 		pdf.CellFormat(colWidths["RP"], rowHeight, strconv.Itoa(ranking.RankingPoints), "1", 1, "C", false, 0, "")
 	}
 
@@ -482,12 +482,8 @@ func (web *Web) schedulePdfReportHandler(w http.ResponseWriter, r *http.Request)
 			surrogate = true
 		}
 
-		formatTeam := func(teamId int) string {
-			if teamId == 0 {
-				return ""
-			} else {
-				return strconv.Itoa(teamId)
-			}
+		formatTeam := func(teamId game.TeamId) string {
+			return string(teamId)
 		}
 
 		// Render match info row.
@@ -622,7 +618,7 @@ func (web *Web) teamsPdfReportHandler(w http.ResponseWriter, r *http.Request) {
 		if numRows > 1 {
 			teamRowHeight = lineHeight * float64(numRows)
 		}
-		pdf.CellFormat(colWidths["Id"], teamRowHeight, strconv.Itoa(team.Id), "1", 0, "L", false, 0, "")
+		pdf.CellFormat(colWidths["Id"], teamRowHeight, string(team.Id), "1", 0, "L", false, 0, "")
 		drawMultiLineCell(pdf, colWidths["Name"], teamRowHeight, lineHeight, team.Nickname, "L", numNicknameRows)
 		drawMultiLineCell(pdf, colWidths["Location"], teamRowHeight, lineHeight, location, "L", numLocationRows)
 		if showHasConnected {
@@ -697,7 +693,7 @@ func (web *Web) alliancesPdfReportHandler(w http.ResponseWriter, r *http.Request
 		handleWebErr(w, err)
 		return
 	}
-	teamsMap := make(map[int]model.Team, len(teams))
+	teamsMap := make(map[game.TeamId]model.Team, len(teams))
 	for _, team := range teams {
 		teamsMap[team.Id] = team
 	}
@@ -755,7 +751,7 @@ func (web *Web) alliancesPdfReportHandler(w http.ResponseWriter, r *http.Request
 				teamRowHeight = lineHeight * float64(numRows)
 			}
 
-			pdf.CellFormat(colWidths["Id"], teamRowHeight, strconv.Itoa(team.Id), "1", 0, "L", false, 0, "")
+			pdf.CellFormat(colWidths["Id"], teamRowHeight, string(team.Id), "1", 0, "L", false, 0, "")
 			drawMultiLineCell(pdf, colWidths["Name"], teamRowHeight, lineHeight, team.Nickname, "L", numNicknameRows)
 			drawMultiLineCell(pdf, colWidths["Location"], teamRowHeight, lineHeight, location, "L", numLocationRows)
 			pdf.SetXY(startX+colWidths["Alliance"], pdf.GetY()+teamRowHeight)
@@ -992,7 +988,7 @@ func (web *Web) judgingSchedulePdfReportHandler(w http.ResponseWriter, r *http.R
 			nextMatchInfo = fmt.Sprintf("Q%d at %s", slot.NextMatchNumber, slot.NextMatchTime.Format("03:04 PM"))
 		}
 
-		pdf.CellFormat(teamColWidths["Team"], rowHeight, strconv.Itoa(slot.TeamId), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(teamColWidths["Team"], rowHeight, string(slot.TeamId), "1", 0, "C", false, 0, "")
 		pdf.CellFormat(
 			teamColWidths["Time"], rowHeight, slot.Time.Local().Format("Mon 1/02 03:04 PM"), "1", 0, "C", false, 0, "",
 		)
@@ -1052,7 +1048,7 @@ func (web *Web) judgingSchedulePdfReportHandler(w http.ResponseWriter, r *http.R
 		}
 
 		pdf.CellFormat(judgeColWidths["Judge"], rowHeight, strconv.Itoa(slot.JudgeNumber), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(judgeColWidths["Team"], rowHeight, strconv.Itoa(slot.TeamId), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(judgeColWidths["Team"], rowHeight, string(slot.TeamId), "1", 0, "C", false, 0, "")
 		pdf.CellFormat(
 			judgeColWidths["Time"], rowHeight, slot.Time.Local().Format("Mon 1/02 03:04 PM"), "1", 0, "C", false, 0, "",
 		)

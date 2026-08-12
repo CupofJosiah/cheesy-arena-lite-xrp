@@ -4,6 +4,7 @@
 package model
 
 import (
+	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -18,7 +19,7 @@ func TestJudgingSlotCrud(t *testing.T) {
 	nextMatchTime := time.Unix(150, 0).UTC()
 	judgingSlot := JudgingSlot{
 		Time:                visitTime,
-		TeamId:              1503,
+		TeamId:              "1503",
 		PreviousMatchNumber: 5,
 		PreviousMatchTime:   prevMatchTime,
 		NextMatchNumber:     6,
@@ -33,7 +34,7 @@ func TestJudgingSlotCrud(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(slots))
 	assert.Equal(t, visitTime, slots[0].Time)
-	assert.Equal(t, 1503, slots[0].TeamId)
+	assert.Equal(t, game.TeamId("1503"), slots[0].TeamId)
 	assert.Equal(t, 5, slots[0].PreviousMatchNumber)
 	assert.Equal(t, prevMatchTime, slots[0].PreviousMatchTime)
 	assert.Equal(t, 6, slots[0].NextMatchNumber)
@@ -41,16 +42,16 @@ func TestJudgingSlotCrud(t *testing.T) {
 	assert.Equal(t, 2, slots[0].JudgeNumber)
 
 	// Test creating additional judging slots.
-	slot1 := JudgingSlot{Time: time.Unix(300, 0), TeamId: 1678, JudgeNumber: 1}
-	slot2 := JudgingSlot{Time: time.Unix(400, 0), TeamId: 1114, JudgeNumber: 2}
+	slot1 := JudgingSlot{Time: time.Unix(300, 0), TeamId: "1678", JudgeNumber: 1}
+	slot2 := JudgingSlot{Time: time.Unix(400, 0), TeamId: "1114", JudgeNumber: 2}
 	assert.Nil(t, database.CreateJudgingSlot(&slot1))
 	assert.Nil(t, database.CreateJudgingSlot(&slot2))
 	slots, err = database.GetAllJudgingSlots()
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(slots))
-	assert.Equal(t, 1114, slots[0].TeamId)
-	assert.Equal(t, 1503, slots[1].TeamId)
-	assert.Equal(t, 1678, slots[2].TeamId)
+	assert.Equal(t, game.TeamId("1114"), slots[0].TeamId)
+	assert.Equal(t, game.TeamId("1503"), slots[1].TeamId)
+	assert.Equal(t, game.TeamId("1678"), slots[2].TeamId)
 
 	// Test truncating all judging slots.
 	assert.Nil(t, database.TruncateJudgingSlots())

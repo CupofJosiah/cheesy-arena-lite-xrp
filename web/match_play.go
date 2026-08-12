@@ -230,10 +230,10 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 			web.arena.ScorePostedNotifier.Notify()
 		case "substituteTeams":
 			args := struct {
-				Red1  int
-				Red2  int
-				Blue1 int
-				Blue2 int
+				Red1  game.TeamId
+				Red2  game.TeamId
+				Blue1 game.TeamId
+				Blue2 game.TeamId
 			}{}
 			err = mapstructure.Decode(data, &args)
 			if err != nil {
@@ -476,12 +476,12 @@ func (web *Web) commitMatchScore(match *model.Match, matchResult *model.MatchRes
 
 		if match.ShouldUpdatePlayoffMatches() {
 			if err = web.arena.Database.UpdateAllianceFromMatch(
-				match.PlayoffRedAlliance, [game.TeamsPerAlliance]int{match.Red1, match.Red2},
+				match.PlayoffRedAlliance, [game.TeamsPerAlliance]game.TeamId{match.Red1, match.Red2},
 			); err != nil {
 				return err
 			}
 			if err = web.arena.Database.UpdateAllianceFromMatch(
-				match.PlayoffBlueAlliance, [game.TeamsPerAlliance]int{match.Blue1, match.Blue2},
+				match.PlayoffBlueAlliance, [game.TeamsPerAlliance]game.TeamId{match.Blue1, match.Blue2},
 			); err != nil {
 				return err
 			}

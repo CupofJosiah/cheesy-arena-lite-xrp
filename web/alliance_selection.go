@@ -7,13 +7,13 @@ package web
 
 import (
 	"fmt"
+	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/Team254/cheesy-arena-lite/tournament"
 	"github.com/Team254/cheesy-arena-lite/websocket"
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -59,9 +59,9 @@ func (web *Web) allianceSelectionPostHandler(w http.ResponseWriter, r *http.Requ
 		for j := range alliance.TeamIds {
 			teamString := r.PostFormValue(fmt.Sprintf("selection%d_%d", i, j))
 			if teamString == "" {
-				web.arena.AllianceSelectionAlliances[i].TeamIds[j] = 0
+				web.arena.AllianceSelectionAlliances[i].TeamIds[j] = ""
 			} else {
-				teamId, err := strconv.Atoi(teamString)
+				teamId, err := game.ParseTeamId(teamString)
 				if err != nil {
 					web.renderAllianceSelection(w, r, fmt.Sprintf("Invalid team number value '%s'.", teamString))
 					return
@@ -71,7 +71,7 @@ func (web *Web) allianceSelectionPostHandler(w http.ResponseWriter, r *http.Requ
 					if team.TeamId == teamId {
 						if team.Picked {
 							web.renderAllianceSelection(
-								w, r, fmt.Sprintf("Team %d is already part of an alliance.", teamId),
+								w, r, fmt.Sprintf("Team %s is already part of an alliance.", teamId),
 							)
 							return
 						}
@@ -86,7 +86,7 @@ func (web *Web) allianceSelectionPostHandler(w http.ResponseWriter, r *http.Requ
 						w,
 						r,
 						fmt.Sprintf(
-							"Team %d has not played any matches at this event and is ineligible for selection.", teamId,
+							"Team %s has not played any matches at this event and is ineligible for selection.", teamId,
 						),
 					)
 					return
@@ -122,7 +122,7 @@ func (web *Web) allianceSelectionStartHandler(w http.ResponseWriter, r *http.Req
 	}
 	for i := 0; i < web.arena.EventSettings.NumPlayoffAlliances; i++ {
 		web.arena.AllianceSelectionAlliances[i].Id = i + 1
-		web.arena.AllianceSelectionAlliances[i].TeamIds = make([]int, teamsPerAlliance)
+		web.arena.AllianceSelectionAlliances[i].TeamIds = make([]game.TeamId, teamsPerAlliance)
 	}
 
 	// Populate the ranked list of teams.
@@ -195,7 +195,7 @@ func (web *Web) allianceSelectionFinalizeHandler(w http.ResponseWriter, r *http.
 	// Check that all spots are filled.
 	for _, alliance := range web.arena.AllianceSelectionAlliances {
 		for _, allianceTeamId := range alliance.TeamIds {
-			if allianceTeamId <= 0 {
+			if allianceTeamId == "" {
 				web.renderAllianceSelection(w, r, "Can't finalize alliance selection until all spots have been filled.")
 				return
 			}
@@ -420,10 +420,10 @@ func (web *Web) canResetAllianceSelection() bool {
 func (web *Web) determineNextCell() (int, int) {
 	// Check the first two columns.
 	for i, alliance := range web.arena.AllianceSelectionAlliances {
-		if alliance.TeamIds[0] == 0 {
+		if alliance.TeamIds[0] == "" {
 			return i, 0
 		}
-		if alliance.TeamIds[1] == 0 {
+		if alliance.TeamIds[1] == "" {
 			return i, 1
 		}
 	}
@@ -431,13 +431,13 @@ func (web *Web) determineNextCell() (int, int) {
 	// Check the third column.
 	if web.arena.EventSettings.SelectionRound2Order == "F" {
 		for i, alliance := range web.arena.AllianceSelectionAlliances {
-			if alliance.TeamIds[2] == 0 {
+			if alliance.TeamIds[2] == "" {
 				return i, 2
 			}
 		}
 	} else {
 		for i := len(web.arena.AllianceSelectionAlliances) - 1; i >= 0; i-- {
-			if web.arena.AllianceSelectionAlliances[i].TeamIds[2] == 0 {
+			if web.arena.AllianceSelectionAlliances[i].TeamIds[2] == "" {
 				return i, 2
 			}
 		}
@@ -446,13 +446,13 @@ func (web *Web) determineNextCell() (int, int) {
 	// Check the fourth column.
 	if web.arena.EventSettings.SelectionRound3Order == "F" {
 		for i, alliance := range web.arena.AllianceSelectionAlliances {
-			if alliance.TeamIds[3] == 0 {
+			if alliance.TeamIds[3] == "" {
 				return i, 3
 			}
 		}
 	} else if web.arena.EventSettings.SelectionRound3Order == "L" {
 		for i := len(web.arena.AllianceSelectionAlliances) - 1; i >= 0; i-- {
-			if web.arena.AllianceSelectionAlliances[i].TeamIds[3] == 0 {
+			if web.arena.AllianceSelectionAlliances[i].TeamIds[3] == "" {
 				return i, 3
 			}
 		}

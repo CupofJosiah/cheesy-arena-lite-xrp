@@ -16,36 +16,36 @@ import (
 func TestAssignTeam(t *testing.T) {
 	arena := setupTestArena(t)
 
-	team := model.Team{Id: 254}
+	team := model.Team{Id: "254"}
 	err := arena.Database.CreateTeam(&team)
 	assert.Nil(t, err)
-	err = arena.Database.CreateTeam(&model.Team{Id: 1114})
+	err = arena.Database.CreateTeam(&model.Team{Id: "1114"})
 	assert.Nil(t, err)
 
-	err = arena.assignTeam(254, "B1")
+	err = arena.assignTeam("254", "B1")
 	assert.Nil(t, err)
 	assert.Equal(t, team, *arena.AllianceStations["B1"].Team)
 
 	// Nothing should happen if the same team is assigned to the same station.
 	arena.AllianceStations["B1"].Ready = true
-	err = arena.assignTeam(254, "B1")
+	err = arena.assignTeam("254", "B1")
 	assert.Nil(t, err)
 	assert.Equal(t, team, *arena.AllianceStations["B1"].Team)
 	assert.True(t, arena.AllianceStations["B1"].Ready)
 
 	// Test reassignment to another team, which must clear the station's readiness.
-	err = arena.assignTeam(1114, "B1")
+	err = arena.assignTeam("1114", "B1")
 	assert.Nil(t, err)
-	assert.Equal(t, 1114, arena.AllianceStations["B1"].Team.Id)
+	assert.Equal(t, game.TeamId("1114"), arena.AllianceStations["B1"].Team.Id)
 	assert.False(t, arena.AllianceStations["B1"].Ready)
 
 	// Check assigning zero as the team number.
-	err = arena.assignTeam(0, "R2")
+	err = arena.assignTeam("", "R2")
 	assert.Nil(t, err)
 	assert.Nil(t, arena.AllianceStations["R2"].Team)
 
 	// Check assigning to a non-existent station.
-	err = arena.assignTeam(254, "R3")
+	err = arena.assignTeam("254", "R3")
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "Invalid alliance station")
 	}
@@ -89,10 +89,10 @@ func TestArenaCheckCanStartMatch(t *testing.T) {
 func TestArenaMatchFlow(t *testing.T) {
 	arena := setupTestArena(t)
 
-	arena.Database.CreateTeam(&model.Team{Id: 254})
-	assert.Nil(t, arena.assignTeam(254, "B2"))
-	arena.Database.CreateTeam(&model.Team{Id: 1678})
-	assert.Nil(t, arena.assignTeam(1678, "R2"))
+	arena.Database.CreateTeam(&model.Team{Id: "254"})
+	assert.Nil(t, arena.assignTeam("254", "B2"))
+	arena.Database.CreateTeam(&model.Team{Id: "1678"})
+	assert.Nil(t, arena.assignTeam("1678", "R2"))
 
 	assert.Equal(t, PreMatch, arena.MatchState)
 	arena.Update()
@@ -291,7 +291,7 @@ func TestArenaStateEnforcement(t *testing.T) {
 func TestLoadNextMatch(t *testing.T) {
 	arena := setupTestArena(t)
 
-	arena.Database.CreateTeam(&model.Team{Id: 1114})
+	arena.Database.CreateTeam(&model.Team{Id: "1114"})
 	practiceMatch1 := model.Match{Type: model.Practice, TypeOrder: 1}
 	practiceMatch2 := model.Match{Type: model.Practice, TypeOrder: 2, Status: game.RedWonMatch}
 	practiceMatch3 := model.Match{Type: model.Practice, TypeOrder: 3}
@@ -305,13 +305,13 @@ func TestLoadNextMatch(t *testing.T) {
 
 	// Test match should be followed by another, empty test match.
 	assert.Equal(t, 0, arena.CurrentMatch.Id)
-	err := arena.SubstituteTeams(1114, 0, 0, 0)
+	err := arena.SubstituteTeams("1114", "", "", "")
 	assert.Nil(t, err)
 	arena.CurrentMatch.Status = game.TieMatch
 	err = arena.LoadNextMatch(false)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, arena.CurrentMatch.Id)
-	assert.Equal(t, 0, arena.CurrentMatch.Red1)
+	assert.Equal(t, game.TeamId(""), arena.CurrentMatch.Red1)
 	assert.Equal(t, false, arena.CurrentMatch.IsComplete())
 
 	// Other matches should be loaded by type until they're all complete.
@@ -346,50 +346,50 @@ func TestSubstituteTeam(t *testing.T) {
 		arena.EventSettings.PlayoffType, arena.EventSettings.NumPlayoffAlliances,
 	)
 
-	arena.Database.CreateTeam(&model.Team{Id: 101})
-	arena.Database.CreateTeam(&model.Team{Id: 102})
-	arena.Database.CreateTeam(&model.Team{Id: 103})
-	arena.Database.CreateTeam(&model.Team{Id: 104})
-	arena.Database.CreateTeam(&model.Team{Id: 105})
-	arena.Database.CreateTeam(&model.Team{Id: 106})
-	arena.Database.CreateTeam(&model.Team{Id: 107})
+	arena.Database.CreateTeam(&model.Team{Id: "101"})
+	arena.Database.CreateTeam(&model.Team{Id: "102"})
+	arena.Database.CreateTeam(&model.Team{Id: "103"})
+	arena.Database.CreateTeam(&model.Team{Id: "104"})
+	arena.Database.CreateTeam(&model.Team{Id: "105"})
+	arena.Database.CreateTeam(&model.Team{Id: "106"})
+	arena.Database.CreateTeam(&model.Team{Id: "107"})
 
 	// Substitute teams into test match.
-	err := arena.SubstituteTeams(0, 0, 101, 0)
+	err := arena.SubstituteTeams("", "", "101", "")
 	assert.Nil(t, err)
-	assert.Equal(t, 101, arena.CurrentMatch.Blue1)
-	assert.Equal(t, 101, arena.AllianceStations["B1"].Team.Id)
-	err = arena.assignTeam(104, "R4")
+	assert.Equal(t, game.TeamId("101"), arena.CurrentMatch.Blue1)
+	assert.Equal(t, game.TeamId("101"), arena.AllianceStations["B1"].Team.Id)
+	err = arena.assignTeam("104", "R4")
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "Invalid alliance station")
 	}
 
 	// Substitute teams into practice match.
-	match := model.Match{Type: model.Practice, Red1: 101, Red2: 102, Blue1: 103, Blue2: 104}
+	match := model.Match{Type: model.Practice, Red1: "101", Red2: "102", Blue1: "103", Blue2: "104"}
 	arena.Database.CreateMatch(&match)
 	arena.LoadMatch(&match)
-	err = arena.SubstituteTeams(107, 102, 103, 104)
+	err = arena.SubstituteTeams("107", "102", "103", "104")
 	assert.Nil(t, err)
-	assert.Equal(t, 107, arena.CurrentMatch.Red1)
-	assert.Equal(t, 107, arena.AllianceStations["R1"].Team.Id)
+	assert.Equal(t, game.TeamId("107"), arena.CurrentMatch.Red1)
+	assert.Equal(t, game.TeamId("107"), arena.AllianceStations["R1"].Team.Id)
 	matchResult := model.NewMatchResult()
 	matchResult.MatchId = arena.CurrentMatch.Id
 
 	// Check that substitution is disallowed in qualification matches.
-	match = model.Match{Type: model.Qualification, Red1: 101, Red2: 102, Blue1: 103, Blue2: 104}
+	match = model.Match{Type: model.Qualification, Red1: "101", Red2: "102", Blue1: "103", Blue2: "104"}
 	arena.Database.CreateMatch(&match)
 	arena.LoadMatch(&match)
-	err = arena.SubstituteTeams(107, 102, 103, 104)
+	err = arena.SubstituteTeams("107", "102", "103", "104")
 	if assert.NotNil(t, err) {
 		assert.Contains(t, err.Error(), "Can't substitute teams for qualification matches.")
 	}
-	match = model.Match{Type: model.Playoff, Red1: 101, Red2: 102, Blue1: 103, Blue2: 104}
+	match = model.Match{Type: model.Playoff, Red1: "101", Red2: "102", Blue1: "103", Blue2: "104"}
 	arena.Database.CreateMatch(&match)
 	arena.LoadMatch(&match)
-	assert.Nil(t, arena.SubstituteTeams(107, 102, 103, 104))
+	assert.Nil(t, arena.SubstituteTeams("107", "102", "103", "104"))
 
 	// Check that loading a nonexistent team fails.
-	err = arena.SubstituteTeams(101, 102, 103, 108)
+	err = arena.SubstituteTeams("101", "102", "103", "108")
 	if assert.NotNil(t, err) {
 		assert.Equal(t, err.Error(), "Team 108 is not present at the event.")
 	}
@@ -466,7 +466,7 @@ func TestArenaTimeout(t *testing.T) {
 	assert.Nil(t, arena.StartTimeout("Break 2", 10))
 	assert.Equal(t, TimeoutActive, arena.MatchState)
 	match := model.Match{
-		Type: model.Playoff, ShortName: "F1", Red1: 1, Red2: 2, Blue1: 3, Blue2: 4,
+		Type: model.Playoff, ShortName: "F1", Red1: "1", Red2: "2", Blue1: "3", Blue2: "4",
 	}
 	assert.Nil(t, arena.Database.CreateMatch(&match))
 	assert.Nil(t, arena.LoadMatch(&match))
@@ -477,11 +477,11 @@ func TestArenaTimeout(t *testing.T) {
 func TestSaveTeamHasConnected(t *testing.T) {
 	arena := setupTestArena(t)
 
-	arena.Database.CreateTeam(&model.Team{Id: 101})
-	arena.Database.CreateTeam(&model.Team{Id: 102})
-	arena.Database.CreateTeam(&model.Team{Id: 103})
-	arena.Database.CreateTeam(&model.Team{Id: 104, City: "San Jose", HasConnected: true})
-	match := model.Match{Red1: 101, Red2: 102, Blue1: 103, Blue2: 104}
+	arena.Database.CreateTeam(&model.Team{Id: "101"})
+	arena.Database.CreateTeam(&model.Team{Id: "102"})
+	arena.Database.CreateTeam(&model.Team{Id: "103"})
+	arena.Database.CreateTeam(&model.Team{Id: "104", City: "San Jose", HasConnected: true})
+	match := model.Match{Red1: "101", Red2: "102", Blue1: "103", Blue2: "104"}
 	arena.Database.CreateMatch(&match)
 	arena.LoadMatch(&match)
 

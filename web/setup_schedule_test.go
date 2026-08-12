@@ -4,6 +4,8 @@
 package web
 
 import (
+	"fmt"
+	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -14,7 +16,7 @@ func TestSetupSchedule(t *testing.T) {
 	web := setupTestWeb(t)
 
 	for i := 0; i < 12; i++ {
-		web.arena.Database.CreateTeam(&model.Team{Id: i + 101})
+		web.arena.Database.CreateTeam(&model.Team{Id: teamId(i + 101)})
 	}
 	web.arena.Database.CreateMatch(&model.Match{Type: model.Practice, ShortName: "P1"})
 
@@ -48,6 +50,50 @@ func TestSetupSchedule(t *testing.T) {
 	assert.Equal(t, time.Date(2014, 1, 3, 13, 0, 0, 0, location).Unix(), matches[15].Time.Unix())
 }
 
+// Verifies that a schedule can be generated and reported on for teams whose numbers contain letters.
+func TestSetupScheduleWithLetteredTeamNumbers(t *testing.T) {
+	web := setupTestWeb(t)
+
+	var expectedTeamIds []game.TeamId
+	for i := 0; i < 12; i++ {
+		// Alternate between "1A", "1B", "2A", ... so that both halves of the ID vary.
+		id := game.TeamId(fmt.Sprintf("%d%c", i/2+1, 'A'+i%2))
+		expectedTeamIds = append(expectedTeamIds, id)
+		assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: id}))
+	}
+
+	postData := "numScheduleBlocks=1&startTime0=2014-01-01 09:00:00 AM&numMatches0=30&matchSpacingSec0=360&" +
+		"matchType=qualification"
+	recorder := web.postHttpResponse("/setup/schedule/generate", postData)
+	assert.Equal(t, 303, recorder.Code)
+	recorder = web.postHttpResponse("/setup/schedule/save?matchType=qualification", "")
+	assert.Equal(t, 303, recorder.Code)
+
+	matches, err := web.arena.Database.GetMatchesByType(model.Qualification, true)
+	assert.Nil(t, err)
+	if !assert.Equal(t, 30, len(matches)) {
+		return
+	}
+
+	// Every scheduled team must be one of the lettered teams that were created.
+	scheduled := make(map[game.TeamId]int)
+	for _, match := range matches {
+		for _, id := range match.TeamIds() {
+			assert.Contains(t, expectedTeamIds, id)
+			scheduled[id]++
+		}
+	}
+	assert.Equal(t, 12, len(scheduled))
+
+	// The schedule reports must render the lettered numbers.
+	recorder = web.getHttpResponse("/reports/csv/schedule/qualification")
+	assert.Equal(t, 200, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "6B")
+	recorder = web.getHttpResponse("/reports/pdf/schedule/qualification")
+	assert.Equal(t, 200, recorder.Code)
+	assert.Equal(t, "application/pdf", recorder.Header().Get("Content-Type"))
+}
+
 func TestSetupScheduleErrors(t *testing.T) {
 	web := setupTestWeb(t)
 
@@ -60,7 +106,7 @@ func TestSetupScheduleErrors(t *testing.T) {
 
 	// Insufficient number of teams.
 	for i := 0; i < 5; i++ {
-		web.arena.Database.CreateTeam(&model.Team{Id: i + 101})
+		web.arena.Database.CreateTeam(&model.Team{Id: teamId(i + 101)})
 	}
 	postData = "numScheduleBlocks=1&startTime0=2014-01-01 09:00:00 AM&numMatches0=7&matchSpacingSec0=480&" +
 		"matchType=practice"
@@ -69,7 +115,7 @@ func TestSetupScheduleErrors(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "There must be at least 6 teams to generate a schedule.")
 
 	// More matches per team than schedules exist for. 700 matches over 6 teams is 466 matches per team.
-	web.arena.Database.CreateTeam(&model.Team{Id: 118})
+	web.arena.Database.CreateTeam(&model.Team{Id: "118"})
 	postData = "numScheduleBlocks=1&startTime0=2014-01-01 09:00:00 AM&numMatches0=700&matchSpacingSec0=480&" +
 		"matchType=practice"
 	recorder = web.postHttpResponse("/setup/schedule/generate", postData)
@@ -85,7 +131,7 @@ func TestSetupScheduleErrors(t *testing.T) {
 
 	// Previous schedule already exists. 30 matches over 12 teams works out to 10 matches per team.
 	for i := 0; i < 6; i++ {
-		web.arena.Database.CreateTeam(&model.Team{Id: i + 119})
+		web.arena.Database.CreateTeam(&model.Team{Id: teamId(i + 119)})
 	}
 	web.arena.Database.CreateMatch(&model.Match{Type: model.Practice, ShortName: "P1"})
 	web.arena.Database.CreateMatch(&model.Match{Type: model.Practice, ShortName: "P2"})

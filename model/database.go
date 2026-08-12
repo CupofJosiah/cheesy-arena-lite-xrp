@@ -23,19 +23,19 @@ var BaseDir = "." // Mutable for testing
 type Database struct {
 	Path                string
 	bolt                *bbolt.DB
-	allianceTable       *table[Alliance]
-	awardTable          *table[Award]
-	eventSettingsTable  *table[EventSettings]
-	judgingSlotTable    *table[JudgingSlot]
-	lowerThirdTable     *table[LowerThird]
-	matchTable          *table[Match]
-	matchResultTable    *table[MatchResult]
-	rankingTable        *table[game.Ranking]
-	scheduleBlockTable  *table[ScheduleBlock]
-	scheduledBreakTable *table[ScheduledBreak]
-	sponsorSlideTable   *table[SponsorSlide]
-	teamTable           *table[Team]
-	userSessionTable    *table[UserSession]
+	allianceTable       *table[Alliance, int]
+	awardTable          *table[Award, int]
+	eventSettingsTable  *table[EventSettings, int]
+	judgingSlotTable    *table[JudgingSlot, int]
+	lowerThirdTable     *table[LowerThird, int]
+	matchTable          *table[Match, int]
+	matchResultTable    *table[MatchResult, int]
+	rankingTable        *table[game.Ranking, game.TeamId]
+	scheduleBlockTable  *table[ScheduleBlock, int]
+	scheduledBreakTable *table[ScheduledBreak, int]
+	sponsorSlideTable   *table[SponsorSlide, int]
+	teamTable           *table[Team, game.TeamId]
+	userSessionTable    *table[UserSession, int]
 }
 
 // Opens the Bolt database at the given path, creating it if it doesn't exist.
@@ -48,43 +48,43 @@ func OpenDatabase(filename string) (*Database, error) {
 	}
 
 	// Register tables.
-	if database.allianceTable, err = newTable[Alliance](&database); err != nil {
+	if database.allianceTable, err = newTable[Alliance, int](&database); err != nil {
 		return nil, err
 	}
-	if database.awardTable, err = newTable[Award](&database); err != nil {
+	if database.awardTable, err = newTable[Award, int](&database); err != nil {
 		return nil, err
 	}
-	if database.eventSettingsTable, err = newTable[EventSettings](&database); err != nil {
+	if database.eventSettingsTable, err = newTable[EventSettings, int](&database); err != nil {
 		return nil, err
 	}
-	if database.judgingSlotTable, err = newTable[JudgingSlot](&database); err != nil {
+	if database.judgingSlotTable, err = newTable[JudgingSlot, int](&database); err != nil {
 		return nil, err
 	}
-	if database.lowerThirdTable, err = newTable[LowerThird](&database); err != nil {
+	if database.lowerThirdTable, err = newTable[LowerThird, int](&database); err != nil {
 		return nil, err
 	}
-	if database.matchTable, err = newTable[Match](&database); err != nil {
+	if database.matchTable, err = newTable[Match, int](&database); err != nil {
 		return nil, err
 	}
-	if database.matchResultTable, err = newTable[MatchResult](&database); err != nil {
+	if database.matchResultTable, err = newTable[MatchResult, int](&database); err != nil {
 		return nil, err
 	}
-	if database.rankingTable, err = newTable[game.Ranking](&database); err != nil {
+	if database.rankingTable, err = newTable[game.Ranking, game.TeamId](&database); err != nil {
 		return nil, err
 	}
-	if database.scheduleBlockTable, err = newTable[ScheduleBlock](&database); err != nil {
+	if database.scheduleBlockTable, err = newTable[ScheduleBlock, int](&database); err != nil {
 		return nil, err
 	}
-	if database.scheduledBreakTable, err = newTable[ScheduledBreak](&database); err != nil {
+	if database.scheduledBreakTable, err = newTable[ScheduledBreak, int](&database); err != nil {
 		return nil, err
 	}
-	if database.sponsorSlideTable, err = newTable[SponsorSlide](&database); err != nil {
+	if database.sponsorSlideTable, err = newTable[SponsorSlide, int](&database); err != nil {
 		return nil, err
 	}
-	if database.teamTable, err = newTable[Team](&database); err != nil {
+	if database.teamTable, err = newTable[Team, game.TeamId](&database); err != nil {
 		return nil, err
 	}
-	if database.userSessionTable, err = newTable[UserSession](&database); err != nil {
+	if database.userSessionTable, err = newTable[UserSession, int](&database); err != nil {
 		return nil, err
 	}
 

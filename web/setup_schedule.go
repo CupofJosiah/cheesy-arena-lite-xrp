@@ -7,6 +7,7 @@ package web
 
 import (
 	"fmt"
+	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/Team254/cheesy-arena-lite/tournament"
 	"net/http"
@@ -16,7 +17,7 @@ import (
 
 // Global vars to hold schedules that are in the process of being generated.
 var cachedMatches = make(map[model.MatchType][]model.Match)
-var cachedTeamFirstMatches = make(map[model.MatchType]map[int]string)
+var cachedTeamFirstMatches = make(map[model.MatchType]map[game.TeamId]string)
 
 // Shows the schedule editing page.
 func (web *Web) scheduleGetHandler(w http.ResponseWriter, r *http.Request) {
@@ -98,9 +99,9 @@ func (web *Web) scheduleGeneratePostHandler(w http.ResponseWriter, r *http.Reque
 	cachedMatches[matchType] = matches
 
 	// Determine each team's first match.
-	teamFirstMatches := make(map[int]string)
+	teamFirstMatches := make(map[game.TeamId]string)
 	for _, match := range matches {
-		checkTeam := func(team int) {
+		checkTeam := func(team game.TeamId) {
 			_, ok := teamFirstMatches[team]
 			if !ok {
 				teamFirstMatches[team] = match.ShortName
@@ -195,7 +196,7 @@ func (web *Web) renderSchedule(w http.ResponseWriter, r *http.Request, errorMess
 		ScheduleBlocks   []model.ScheduleBlock
 		NumTeams         int
 		Matches          []model.Match
-		TeamFirstMatches map[int]string
+		TeamFirstMatches map[game.TeamId]string
 		ErrorMessage     string
 	}{
 		web.arena.EventSettings,

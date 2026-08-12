@@ -27,7 +27,7 @@ func TestMatchPlay(t *testing.T) {
 func TestCommitMatchScores(t *testing.T) {
 	web := setupTestWeb(t)
 
-	match := &model.Match{Type: model.Qualification, Red1: 101, Red2: 102, Blue1: 104, Blue2: 105}
+	match := &model.Match{Type: model.Qualification, Red1: "101", Red2: "102", Blue1: "104", Blue2: "105"}
 	assert.Nil(t, web.arena.Database.CreateMatch(match))
 	matchResult := &model.MatchResult{
 		MatchId: match.Id,

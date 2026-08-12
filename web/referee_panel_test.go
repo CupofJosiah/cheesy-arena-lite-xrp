@@ -93,20 +93,20 @@ func TestRefereePanelWebsocket(t *testing.T) {
 
 	ws.Write("card", struct {
 		Alliance string
-		TeamId   int
+		TeamId   game.TeamId
 		Card     string
-	}{"red", 256, "yellow"})
+	}{"red", "256", "yellow"})
 	readWebsocketType(t, ws, "realtimeScore")
 	assert.Equal(t, "yellow", web.arena.RedRealtimeScore.Cards["256"])
 
 	web.arena.CurrentMatch.Type = model.Playoff
-	web.arena.CurrentMatch.Blue1 = 1679
-	web.arena.CurrentMatch.Blue2 = 1680
+	web.arena.CurrentMatch.Blue1 = "1679"
+	web.arena.CurrentMatch.Blue2 = "1680"
 	ws.Write("card", struct {
 		Alliance string
-		TeamId   int
+		TeamId   game.TeamId
 		Card     string
-	}{"blue", 1680, "red"})
+	}{"blue", "1680", "red"})
 	readWebsocketType(t, ws, "realtimeScore")
 	assert.Equal(t, "red", web.arena.BlueRealtimeScore.Cards["1679"])
 	assert.Equal(t, "red", web.arena.BlueRealtimeScore.Cards["1680"])

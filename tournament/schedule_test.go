@@ -5,6 +5,7 @@ package tournament
 
 import (
 	"fmt"
+	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
@@ -72,7 +73,7 @@ func TestScheduleTeams(t *testing.T) {
 	const numTeams = 12
 	teams := make([]model.Team, numTeams)
 	for i := 0; i < numTeams; i++ {
-		teams[i].Id = i + 101
+		teams[i].Id = teamId(i + 101)
 	}
 
 	for _, matchesPerTeam := range []int{6, 7, 8, 9, 10} {
@@ -89,7 +90,7 @@ func TestScheduleTeams(t *testing.T) {
 		}
 		assert.Equal(t, numMatches, len(matches))
 
-		matchCounts := make(map[int]int)
+		matchCounts := make(map[game.TeamId]int)
 		for i, match := range matches {
 			assert.Equal(t, model.Qualification, match.Type)
 			assert.Equal(t, i+1, match.TypeOrder)
@@ -100,9 +101,9 @@ func TestScheduleTeams(t *testing.T) {
 			assert.Equal(t, time.Unix(int64(i*60), 0).UTC(), match.Time)
 
 			// A team must never appear twice in the same match.
-			seen := make(map[int]bool)
+			seen := make(map[game.TeamId]bool)
 			for _, teamId := range match.TeamIds() {
-				assert.False(t, seen[teamId], "team %d appears twice in match %d", teamId, i+1)
+				assert.False(t, seen[teamId], "team %s appears twice in match %d", teamId, i+1)
 				seen[teamId] = true
 				matchCounts[teamId]++
 			}
@@ -147,7 +148,7 @@ func TestScheduleSurrogates(t *testing.T) {
 
 	teams := make([]model.Team, 4)
 	for i := range teams {
-		teams[i].Id = i + 101
+		teams[i].Id = teamId(i + 101)
 	}
 	scheduleBlocks := []model.ScheduleBlock{{0, model.Qualification, time.Unix(0, 0).UTC(), 2, 60}}
 	matches, err := BuildRandomSchedule(teams, scheduleBlocks, model.Qualification)

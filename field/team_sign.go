@@ -30,7 +30,7 @@ type TeamSigns struct {
 type TeamSign struct {
 	isTimer         bool
 	address         byte
-	nextMatchTeamId int
+	nextMatchTeamId game.TeamId
 	frontText       string
 	frontColor      color.RGBA
 	rearText        string
@@ -117,7 +117,7 @@ func (signs *TeamSigns) Update(arena *Arena) {
 }
 
 // Sets the team numbers for the next match on all signs.
-func (signs *TeamSigns) SetNextMatchTeams(teams [game.TeamsPerMatch]int) {
+func (signs *TeamSigns) SetNextMatchTeams(teams [game.TeamsPerMatch]game.TeamId) {
 	signs.Red1.nextMatchTeamId = teams[0]
 	signs.Red2.nextMatchTeamId = teams[1]
 	signs.Blue1.nextMatchTeamId = teams[2]
@@ -282,7 +282,7 @@ func (sign *TeamSign) generateTeamNumberTexts(
 			return "     ", whiteColor, fmt.Sprintf("%20s", "No Team Assigned")
 		}
 
-		frontText = fmt.Sprintf("%5d", allianceStation.Team.Id)
+		frontText = fmt.Sprintf("%5s", allianceStation.Team.Id)
 
 		if allianceStation.EStop {
 			frontColor = orangeColor
@@ -319,16 +319,17 @@ func (sign *TeamSign) generateTeamNumberTexts(
 	}
 
 	var rearText string
-	if arena.MatchState == PostMatch && sign.nextMatchTeamId > 0 && sign.nextMatchTeamId != allianceStation.Team.Id {
+	if arena.MatchState == PostMatch && sign.nextMatchTeamId != "" &&
+		sign.nextMatchTeamId != allianceStation.Team.Id {
 		// Show the next match team number on the rear display before the score is committed so that queueing teams know
 		// where to go.
-		rearText = fmt.Sprintf("Next Team Up: %d", sign.nextMatchTeamId)
+		rearText = fmt.Sprintf("Next Team Up: %s", sign.nextMatchTeamId)
 	} else if len(message) > 0 {
-		teamId := 0
+		var teamId game.TeamId
 		if allianceStation.Team != nil {
 			teamId = allianceStation.Team.Id
 		}
-		rearText = fmt.Sprintf("%-5d %14s", teamId, message)
+		rearText = fmt.Sprintf("%-5s %14s", teamId, message)
 	} else {
 		rearText = inMatchRearText
 	}

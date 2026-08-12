@@ -18,7 +18,7 @@ func TestBuildJudgingSchedule(t *testing.T) {
 	database := setupTestDb(t)
 
 	// Test error when judging slots already exist.
-	slot := model.JudgingSlot{Time: time.Now(), TeamId: 254, JudgeNumber: 1}
+	slot := model.JudgingSlot{Time: time.Now(), TeamId: "254", JudgeNumber: 1}
 	assert.Nil(t, database.CreateJudgingSlot(&slot))
 	params := JudgingScheduleParams{
 		NumJudges:              3,
@@ -37,7 +37,7 @@ func TestBuildJudgingSchedule(t *testing.T) {
 
 	// Generate teams to test against.
 	for i := 1; i <= 12; i++ {
-		assert.Nil(t, database.CreateTeam(&model.Team{Id: i}))
+		assert.Nil(t, database.CreateTeam(&model.Team{Id: teamId(i)}))
 	}
 	teams, err := database.GetAllTeams()
 	assert.Nil(t, err)
@@ -115,7 +115,7 @@ func TestBuildJudgingScheduleMissingTeamMatches(t *testing.T) {
 	database := setupTestDb(t)
 
 	for i := 1; i <= 6; i++ {
-		assert.Nil(t, database.CreateTeam(&model.Team{Id: i}))
+		assert.Nil(t, database.CreateTeam(&model.Team{Id: teamId(i)}))
 	}
 	teams, err := database.GetAllTeams()
 	assert.Nil(t, err)
@@ -163,7 +163,7 @@ func TestGetNextSlotForTeamAfterLastMatch(t *testing.T) {
 		PreviousSpacingMinutes: 30,
 		NextSpacingMinutes:     10,
 	}
-	team := model.Team{Id: 1}
+	team := model.Team{Id: "1"}
 	matches := []model.Match{
 		{
 			Type:      model.Qualification,
@@ -190,7 +190,7 @@ func TestBuildJudgingScheduleAllowsEndDuringBreak(t *testing.T) {
 	judgingShuffle = randomizer.Shuffle
 	database := setupTestDb(t)
 
-	assert.Nil(t, database.CreateTeam(&model.Team{Id: 1}))
+	assert.Nil(t, database.CreateTeam(&model.Team{Id: "1"}))
 
 	scheduleBlocks := []model.ScheduleBlock{
 		{
@@ -215,28 +215,28 @@ func TestBuildJudgingScheduleAllowsEndDuringBreak(t *testing.T) {
 			Type:      model.Qualification,
 			TypeOrder: 1,
 			Time:      scheduleBlocks[0].StartTime,
-			Red1:      1,
-			Red2:      1,
-			Blue1:     1,
-			Blue2:     1,
+			Red1:      "1",
+			Red2:      "1",
+			Blue1:     "1",
+			Blue2:     "1",
 		},
 		{
 			Type:      model.Qualification,
 			TypeOrder: 2,
 			Time:      scheduleBlocks[0].StartTime.Add(10 * time.Minute),
-			Red1:      1,
-			Red2:      1,
-			Blue1:     1,
-			Blue2:     1,
+			Red1:      "1",
+			Red2:      "1",
+			Blue1:     "1",
+			Blue2:     "1",
 		},
 		{
 			Type:      model.Qualification,
 			TypeOrder: 3,
 			Time:      scheduleBlocks[1].StartTime,
-			Red1:      1,
-			Red2:      1,
-			Blue1:     1,
-			Blue2:     1,
+			Red1:      "1",
+			Red2:      "1",
+			Blue1:     "1",
+			Blue2:     "1",
 		},
 	}
 	for _, match := range matches {

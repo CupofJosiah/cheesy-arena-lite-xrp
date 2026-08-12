@@ -36,7 +36,7 @@ func TestScore2() *Score {
 
 func TestRanking1() *Ranking {
 	return &Ranking{
-		TeamId:       254,
+		TeamId:       "254",
 		Rank:         1,
 		PreviousRank: 0,
 		RankingFields: RankingFields{
@@ -56,7 +56,7 @@ func TestRanking1() *Ranking {
 
 func TestRanking2() *Ranking {
 	return &Ranking{
-		TeamId:       1114,
+		TeamId:       "1114",
 		Rank:         2,
 		PreviousRank: 1,
 		RankingFields: RankingFields{

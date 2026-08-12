@@ -14,7 +14,7 @@ func (database *Database) CreateRanking(ranking *game.Ranking) error {
 	return database.rankingTable.create(ranking)
 }
 
-func (database *Database) GetRankingForTeam(teamId int) (*game.Ranking, error) {
+func (database *Database) GetRankingForTeam(teamId game.TeamId) (*game.Ranking, error) {
 	return database.rankingTable.getById(teamId)
 }
 
@@ -22,7 +22,7 @@ func (database *Database) UpdateRanking(ranking *game.Ranking) error {
 	return database.rankingTable.update(ranking)
 }
 
-func (database *Database) DeleteRanking(teamId int) error {
+func (database *Database) DeleteRanking(teamId game.TeamId) error {
 	return database.rankingTable.delete(teamId)
 }
 

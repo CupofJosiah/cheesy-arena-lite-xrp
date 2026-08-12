@@ -20,30 +20,30 @@ func TestSetupJudging(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "Judge Scheduling")
 
 	// Generate teams and matches to test against.
-	assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: 1}))
-	assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: 2}))
-	assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: 3}))
-	assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: 4}))
-	assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: 5}))
-	assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: 6}))
+	assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: "1"}))
+	assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: "2"}))
+	assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: "3"}))
+	assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: "4"}))
+	assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: "5"}))
+	assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: "6"}))
 	match := model.Match{
 		Type:      model.Qualification,
 		TypeOrder: 1,
 		Time:      time.Now().Add(1 * time.Hour),
-		Red1:      1,
-		Red2:      2,
-		Blue1:     4,
-		Blue2:     5,
+		Red1:      "1",
+		Red2:      "2",
+		Blue1:     "4",
+		Blue2:     "5",
 	}
 	assert.Nil(t, web.arena.Database.CreateMatch(&match))
 	match = model.Match{
 		Type:      model.Qualification,
 		TypeOrder: 2,
 		Time:      time.Now().Add(2 * time.Hour),
-		Red1:      6,
-		Red2:      5,
-		Blue1:     3,
-		Blue2:     2,
+		Red1:      "6",
+		Red2:      "5",
+		Blue1:     "3",
+		Blue2:     "2",
 	}
 	assert.Nil(t, web.arena.Database.CreateMatch(&match))
 

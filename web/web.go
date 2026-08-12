@@ -11,7 +11,6 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"text/template"
 
@@ -52,8 +51,8 @@ func NewWeb(arena *field.Arena) *Web {
 		"add": func(a, b int) int {
 			return a + b
 		},
-		"itoa": func(a int) string {
-			return strconv.Itoa(a)
+		"teamKey": func(teamId game.TeamId) string {
+			return string(teamId)
 		},
 		"multiply": func(a, b int) int {
 			return a * b

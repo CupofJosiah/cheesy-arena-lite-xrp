@@ -58,7 +58,7 @@ var cycleCard = function (cardButton) {
   }
   websocket.send(
     "card",
-    {Alliance: $(cardButton).attr("data-alliance"), TeamId: parseInt($(cardButton).attr("data-team")), Card: newCard}
+    {Alliance: $(cardButton).attr("data-alliance"), TeamId: $(cardButton).attr("data-team"), Card: newCard}
   );
   $(cardButton).attr("data-card", newCard);
 };

@@ -5,10 +5,13 @@
 
 package model
 
-import "sort"
+import (
+	"github.com/Team254/cheesy-arena-lite/game"
+	"sort"
+)
 
 type Team struct {
-	Id              int `db:"id,manual"`
+	Id              game.TeamId `db:"id,manual"`
 	Name            string
 	Nickname        string
 	City            string
@@ -27,7 +30,7 @@ func (database *Database) CreateTeam(team *Team) error {
 	return database.teamTable.create(team)
 }
 
-func (database *Database) GetTeamById(id int) (*Team, error) {
+func (database *Database) GetTeamById(id game.TeamId) (*Team, error) {
 	return database.teamTable.getById(id)
 }
 
@@ -35,7 +38,7 @@ func (database *Database) UpdateTeam(team *Team) error {
 	return database.teamTable.update(team)
 }
 
-func (database *Database) DeleteTeam(id int) error {
+func (database *Database) DeleteTeam(id game.TeamId) error {
 	return database.teamTable.delete(id)
 }
 
@@ -50,7 +53,7 @@ func (database *Database) GetAllTeams() ([]Team, error) {
 	}
 	sort.Slice(
 		teams, func(i, j int) bool {
-			return teams[i].Id < teams[j].Id
+			return game.LessTeamId(teams[i].Id, teams[j].Id)
 		},
 	)
 	return teams, nil

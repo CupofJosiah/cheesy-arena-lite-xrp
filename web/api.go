@@ -15,7 +15,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strconv"
 )
 
 // Directory holding per-team avatar images, served by the team avatar endpoint.
@@ -281,7 +280,7 @@ func (web *Web) rankingsApiHandler(w http.ResponseWriter, r *http.Request) {
 		handleWebErr(w, err)
 		return
 	}
-	teamNicknames := make(map[int]string)
+	teamNicknames := make(map[game.TeamId]string)
 	for _, team := range teams {
 		teamNicknames[team.Id] = team.Nickname
 	}
@@ -359,13 +358,15 @@ func (web *Web) arenaWebsocketApiHandler(w http.ResponseWriter, r *http.Request)
 
 // Serves the avatar for a given team, or a default if none exists.
 func (web *Web) teamAvatarsApiHandler(w http.ResponseWriter, r *http.Request) {
-	teamId, err := strconv.Atoi(r.PathValue("teamId"))
+	// Parse rather than using the path value directly, since it is interpolated into a filesystem path and
+	// ParseTeamId is what guarantees it contains no path separators.
+	teamId, err := game.ParseTeamId(r.PathValue("teamId"))
 	if err != nil {
 		handleWebErr(w, err)
 		return
 	}
 
-	avatarPath := fmt.Sprintf("%s/%d.png", avatarsDir, teamId)
+	avatarPath := fmt.Sprintf("%s/%s.png", avatarsDir, teamId)
 	if _, err := os.Stat(avatarPath); os.IsNotExist(err) {
 		avatarPath = fmt.Sprintf("%s/0.png", avatarsDir)
 	}

@@ -323,7 +323,7 @@ func (arena *Arena) LoadNextMatch(startScheduledBreak bool) error {
 }
 
 // Assigns the given team to the given station, also substituting it into the match record.
-func (arena *Arena) SubstituteTeams(red1, red2, blue1, blue2 int) error {
+func (arena *Arena) SubstituteTeams(red1, red2, blue1, blue2 game.TeamId) error {
 	if !arena.CurrentMatch.ShouldAllowSubstitution() {
 		return fmt.Errorf("Can't substitute teams for qualification matches.")
 	}
@@ -613,10 +613,10 @@ func (arena *Arena) BlueScoreSummary() *game.ScoreSummary {
 	return arena.BlueRealtimeScore.CurrentScore.Summarize(&arena.RedRealtimeScore.CurrentScore)
 }
 
-// Checks that the given teams are present in the database, allowing team ID 0 which indicates an empty spot.
-func (arena *Arena) validateTeams(teamIds ...int) error {
+// Checks that the given teams are present in the database, allowing the empty team ID which indicates an empty spot.
+func (arena *Arena) validateTeams(teamIds ...game.TeamId) error {
 	for _, teamId := range teamIds {
-		if teamId == 0 {
+		if teamId == "" {
 			continue
 		}
 		team, err := arena.Database.GetTeamById(teamId)
@@ -624,14 +624,14 @@ func (arena *Arena) validateTeams(teamIds ...int) error {
 			return err
 		}
 		if team == nil {
-			return fmt.Errorf("Team %d is not present at the event.", teamId)
+			return fmt.Errorf("Team %s is not present at the event.", teamId)
 		}
 	}
 	return nil
 }
 
 // Loads a team into an alliance station, cleaning up the previous team there if there is one.
-func (arena *Arena) assignTeam(teamId int, station string) error {
+func (arena *Arena) assignTeam(teamId game.TeamId, station string) error {
 	// Reject invalid station values.
 	allianceStation, ok := arena.AllianceStations[station]
 	if !ok {
@@ -647,8 +647,8 @@ func (arena *Arena) assignTeam(teamId int, station string) error {
 	allianceStation.EStop = false
 	allianceStation.Ready = false
 
-	// Leave the station empty if the team number is zero.
-	if teamId == 0 {
+	// Leave the station empty if the team number is blank.
+	if teamId == "" {
 		allianceStation.Team = nil
 		return nil
 	}
@@ -732,7 +732,7 @@ func (arena *Arena) checkAllianceStationsReady(stations ...string) error {
 
 // Returns the alliance station identifier for the given team, or the empty string if the team is not present
 // in the current match.
-func (arena *Arena) getAssignedAllianceStation(teamId int) string {
+func (arena *Arena) getAssignedAllianceStation(teamId game.TeamId) string {
 	for station, allianceStation := range arena.AllianceStations {
 		if allianceStation.Team != nil && allianceStation.Team.Id == teamId {
 			return station

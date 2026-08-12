@@ -62,9 +62,9 @@ func TestTeamSignPostMatchShowsNextTeam(t *testing.T) {
 	arena := setupTestArena(t)
 	arena.MatchState = PostMatch
 	arena.AllianceStationDisplayMode = "match"
-	arena.AllianceStations["R1"].Team = &model.Team{Id: 254}
+	arena.AllianceStations["R1"].Team = &model.Team{Id: "254"}
 
-	sign := TeamSign{address: 51, nextMatchTeamId: 1114}
+	sign := TeamSign{address: 51, nextMatchTeamId: "1114"}
 	frontText, frontColor, rearText := sign.generateTeamNumberTexts(arena, "R1", true, "00:00", "")
 
 	assert.Equal(t, "  254", frontText)

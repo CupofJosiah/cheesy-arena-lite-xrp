@@ -641,14 +641,15 @@ const getAvatarUrl = function (teamId) {
 
 const setTeamInfo = function (side, position, teamId, cards, rankings) {
   const teamNumberElement = $(`#${side}FinalTeam${position}`);
+  const hasTeam = !!teamId;
   teamNumberElement.html(teamId);
-  teamNumberElement.toggle(teamId > 0);
+  teamNumberElement.toggle(hasTeam);
   const avatarElement = $(`#${side}FinalTeam${position}Avatar`);
   avatarElement.attr("src", getAvatarUrl(teamId));
-  avatarElement.toggle(teamId > 0);
+  avatarElement.toggle(hasTeam);
 
   const cardElement = $(`#${side}FinalTeam${position}Card`);
-  cardElement.attr("data-card", cards[teamId.toString()] || "");
+  cardElement.attr("data-card", cards[teamId] || "");
 
   const ranking = rankings[teamId];
   let rankIndicator = "";
@@ -664,11 +665,11 @@ const setTeamInfo = function (side, position, teamId, cards, rankings) {
 
   const rankIndicatorElement = $(`#${side}FinalTeam${position}RankIndicator`);
   rankIndicatorElement.attr("src", rankIndicator === "" ? "" : `/static/img/${rankIndicator}.svg`);
-  rankIndicatorElement.toggle(rankIndicator !== "" && teamId > 0);
+  rankIndicatorElement.toggle(rankIndicator !== "" && hasTeam);
 
   const rankNumberElement = $(`#${side}FinalTeam${position}RankNumber`);
   rankNumberElement.text(rankNumber);
-  rankNumberElement.toggle(teamId > 0);
+  rankNumberElement.toggle(hasTeam);
 };
 
 $(function () {

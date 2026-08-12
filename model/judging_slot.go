@@ -6,6 +6,7 @@
 package model
 
 import (
+	"github.com/Team254/cheesy-arena-lite/game"
 	"sort"
 	"time"
 )
@@ -13,7 +14,7 @@ import (
 type JudgingSlot struct {
 	Id                  int `db:"id"`
 	Time                time.Time
-	TeamId              int
+	TeamId              game.TeamId
 	PreviousMatchNumber int
 	PreviousMatchTime   time.Time
 	NextMatchNumber     int
@@ -37,7 +38,7 @@ func (database *Database) GetAllJudgingSlots() ([]JudgingSlot, error) {
 	sort.Slice(
 		judgingSlots,
 		func(i, j int) bool {
-			return judgingSlots[i].TeamId < judgingSlots[j].TeamId
+			return game.LessTeamId(judgingSlots[i].TeamId, judgingSlots[j].TeamId)
 		},
 	)
 	return judgingSlots, nil

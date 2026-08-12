@@ -10,7 +10,6 @@ import (
 	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"sort"
-	"strconv"
 )
 
 // Determines the rankings from the stored match results, and saves them to the database.
@@ -19,7 +18,7 @@ func CalculateRankings(database *model.Database, preservePreviousRank bool) (gam
 	if err != nil {
 		return nil, err
 	}
-	rankings := make(map[int]*game.Ranking)
+	rankings := make(map[game.TeamId]*game.Ranking)
 	for _, match := range matches {
 		if !match.IsComplete() {
 			continue
@@ -47,7 +46,7 @@ func CalculateRankings(database *model.Database, preservePreviousRank bool) (gam
 	if err != nil {
 		return nil, err
 	}
-	oldRankingsMap := make(map[int]game.Ranking, len(oldRankings))
+	oldRankingsMap := make(map[game.TeamId]game.Ranking, len(oldRankings))
 	for _, ranking := range oldRankings {
 		oldRankingsMap[ranking.TeamId] = ranking
 	}
@@ -80,7 +79,7 @@ func CalculateTeamCards(database *model.Database, matchType model.MatchType) err
 	teamsMap := make(map[string]model.Team)
 	for _, team := range teams {
 		team.YellowCard = false
-		teamsMap[strconv.Itoa(team.Id)] = team
+		teamsMap[string(team.Id)] = team
 	}
 
 	matches, err := database.GetMatchesByType(matchType, false)
@@ -126,7 +125,9 @@ func CalculateTeamCards(database *model.Database, matchType model.MatchType) err
 }
 
 // Incrementally accounts for the given match result in the set of rankings that are being built.
-func addMatchResultToRankings(rankings map[int]*game.Ranking, teamId int, matchResult *model.MatchResult, isRed bool) {
+func addMatchResultToRankings(
+	rankings map[game.TeamId]*game.Ranking, teamId game.TeamId, matchResult *model.MatchResult, isRed bool,
+) {
 	ranking := rankings[teamId]
 	if ranking == nil {
 		ranking = &game.Ranking{TeamId: teamId}
@@ -141,7 +142,7 @@ func addMatchResultToRankings(rankings map[int]*game.Ranking, teamId int, matchR
 		cards = matchResult.BlueCards
 	}
 	disqualified := false
-	if card, ok := cards[strconv.Itoa(teamId)]; ok && (card == "red" || card == "dq") {
+	if card, ok := cards[string(teamId)]; ok && (card == "red" || card == "dq") {
 		disqualified = true
 	}
 
@@ -152,7 +153,7 @@ func addMatchResultToRankings(rankings map[int]*game.Ranking, teamId int, matchR
 	}
 }
 
-func sortRankings(rankings map[int]*game.Ranking) game.Rankings {
+func sortRankings(rankings map[game.TeamId]*game.Ranking) game.Rankings {
 	var sortedRankings game.Rankings
 	for _, ranking := range rankings {
 		sortedRankings = append(sortedRankings, *ranking)

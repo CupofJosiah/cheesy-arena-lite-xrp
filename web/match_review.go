@@ -18,8 +18,8 @@ type MatchReviewListItem struct {
 	Id          int
 	ShortName   string
 	Time        string
-	RedTeams    []int
-	BlueTeams   []int
+	RedTeams    []game.TeamId
+	BlueTeams   []game.TeamId
 	RedScore    int
 	BlueScore   int
 	RedSummary  *game.ScoreSummary
@@ -30,7 +30,7 @@ type MatchReviewListItem struct {
 
 type MatchReviewEditAlliance struct {
 	Alliance          string
-	Teams             []int
+	Teams             []game.TeamId
 	Summary           *game.ScoreSummary
 	ShowRankingPoints bool
 }
@@ -109,13 +109,13 @@ func (web *Web) matchReviewEditGetHandler(w http.ResponseWriter, r *http.Request
 	alliances := []MatchReviewEditAlliance{
 		{
 			Alliance:          "red",
-			Teams:             []int{match.Red1, match.Red2},
+			Teams:             []game.TeamId{match.Red1, match.Red2},
 			Summary:           matchResult.RedScoreSummary(),
 			ShowRankingPoints: match.Type != model.Playoff,
 		},
 		{
 			Alliance:          "blue",
-			Teams:             []int{match.Blue1, match.Blue2},
+			Teams:             []game.TeamId{match.Blue1, match.Blue2},
 			Summary:           matchResult.BlueScoreSummary(),
 			ShowRankingPoints: match.Type != model.Playoff,
 		},
@@ -267,8 +267,8 @@ func (web *Web) buildMatchReviewList(matchType model.MatchType) ([]MatchReviewLi
 		matchReviewList[i].Id = match.Id
 		matchReviewList[i].ShortName = match.ShortName
 		matchReviewList[i].Time = match.Time.Local().Format("Mon 1/02 03:04 PM")
-		matchReviewList[i].RedTeams = []int{match.Red1, match.Red2}
-		matchReviewList[i].BlueTeams = []int{match.Blue1, match.Blue2}
+		matchReviewList[i].RedTeams = []game.TeamId{match.Red1, match.Red2}
+		matchReviewList[i].BlueTeams = []game.TeamId{match.Blue1, match.Blue2}
 		matchReviewList[i].RedSummary = new(game.ScoreSummary)
 		matchReviewList[i].BlueSummary = new(game.ScoreSummary)
 		matchResult, err := web.arena.Database.GetMatchResultForMatch(match.Id)

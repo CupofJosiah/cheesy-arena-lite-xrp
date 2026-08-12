@@ -5,13 +5,16 @@
 
 package model
 
-import "sort"
+import (
+	"github.com/Team254/cheesy-arena-lite/game"
+	"sort"
+)
 
 type Award struct {
 	Id         int `db:"id"`
 	Type       AwardType
 	AwardName  string
-	TeamId     int
+	TeamId     game.TeamId
 	PersonName string
 }
 

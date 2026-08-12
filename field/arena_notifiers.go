@@ -11,7 +11,6 @@ import (
 	"github.com/Team254/cheesy-arena-lite/playoff"
 	"github.com/Team254/cheesy-arena-lite/websocket"
 	"log"
-	"strconv"
 )
 
 type ArenaNotifiers struct {
@@ -127,7 +126,7 @@ func (arena *Arena) generateLowerThirdMessage() any {
 
 func (arena *Arena) GenerateMatchLoadMessage() any {
 	teams := make(map[string]*model.Team)
-	var allTeamIds []int
+	var allTeamIds []game.TeamId
 	for station, allianceStation := range arena.AllianceStations {
 		teams[station] = allianceStation.Team
 		if allianceStation.Team != nil {
@@ -156,7 +155,7 @@ func (arena *Arena) GenerateMatchLoadMessage() any {
 		for _, teamId := range redOffFieldTeamIds {
 			team, err := arena.Database.GetTeamById(teamId)
 			if err != nil {
-				log.Printf("Failed to get red off-field team %d while generating match load message: %v", teamId, err)
+				log.Printf("Failed to get red off-field team %s while generating match load message: %v", teamId, err)
 			}
 			redOffFieldTeams = append(redOffFieldTeams, team)
 			allTeamIds = append(allTeamIds, teamId)
@@ -164,7 +163,7 @@ func (arena *Arena) GenerateMatchLoadMessage() any {
 		for _, teamId := range blueOffFieldTeamIds {
 			team, err := arena.Database.GetTeamById(teamId)
 			if err != nil {
-				log.Printf("Failed to get blue off-field team %d while generating match load message: %v", teamId, err)
+				log.Printf("Failed to get blue off-field team %s while generating match load message: %v", teamId, err)
 			}
 			blueOffFieldTeams = append(blueOffFieldTeams, team)
 			allTeamIds = append(allTeamIds, teamId)
@@ -175,10 +174,10 @@ func (arena *Arena) GenerateMatchLoadMessage() any {
 	for _, teamId := range allTeamIds {
 		ranking, err := arena.Database.GetRankingForTeam(teamId)
 		if err != nil {
-			log.Printf("Failed to get ranking for team %d while generating match load message: %v", teamId, err)
+			log.Printf("Failed to get ranking for team %s while generating match load message: %v", teamId, err)
 		}
 		if ranking != nil {
-			rankings[strconv.Itoa(teamId)] = ranking.Rank
+			rankings[string(teamId)] = ranking.Rank
 		}
 	}
 
@@ -246,8 +245,8 @@ func (arena *Arena) GenerateScorePostedMessage() any {
 	// For playoff matches, summarize the state of the series.
 	var redWins, blueWins int
 	var redDestination, blueDestination string
-	redOffFieldTeamIds := []int{}
-	blueOffFieldTeamIds := []int{}
+	redOffFieldTeamIds := []game.TeamId{}
+	blueOffFieldTeamIds := []game.TeamId{}
 	if arena.SavedMatch.Type == model.Playoff {
 		matchGroup := arena.PlayoffTournament.MatchGroups()[arena.SavedMatch.PlayoffMatchGroupId]
 		if matchup, ok := matchGroup.(*playoff.Matchup); ok {
@@ -264,10 +263,10 @@ func (arena *Arena) GenerateScorePostedMessage() any {
 		}
 	}
 
-	redRankings := map[int]*game.Ranking{
+	redRankings := map[game.TeamId]*game.Ranking{
 		arena.SavedMatch.Red1: nil, arena.SavedMatch.Red2: nil,
 	}
-	blueRankings := map[int]*game.Ranking{
+	blueRankings := map[game.TeamId]*game.Ranking{
 		arena.SavedMatch.Blue1: nil, arena.SavedMatch.Blue2: nil,
 	}
 	for index, ranking := range arena.SavedRankings {
@@ -287,10 +286,10 @@ func (arena *Arena) GenerateScorePostedMessage() any {
 		BlueRankingPoints   int
 		RedCards            map[string]string
 		BlueCards           map[string]string
-		RedRankings         map[int]*game.Ranking
-		BlueRankings        map[int]*game.Ranking
-		RedOffFieldTeamIds  []int
-		BlueOffFieldTeamIds []int
+		RedRankings         map[game.TeamId]*game.Ranking
+		BlueRankings        map[game.TeamId]*game.Ranking
+		RedOffFieldTeamIds  []game.TeamId
+		BlueOffFieldTeamIds []game.TeamId
 		RedWon              bool
 		BlueWon             bool
 		TiebreakReason      string

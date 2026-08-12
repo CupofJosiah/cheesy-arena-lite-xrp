@@ -146,7 +146,7 @@ func TestSetupSettingsInvalidValues(t *testing.T) {
 
 func TestSetupSettingsClearDb(t *testing.T) {
 	createData := func(web *Web) {
-		assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: 254}))
+		assert.Nil(t, web.arena.Database.CreateTeam(&model.Team{Id: "254"}))
 		assert.Nil(t, web.arena.Database.CreateMatch(&model.Match{Type: model.Practice}))
 		assert.Nil(t, web.arena.Database.CreateMatch(&model.Match{Type: model.Qualification}))
 		assert.Nil(t, web.arena.Database.CreateMatch(&model.Match{Type: model.Playoff}))
@@ -154,7 +154,7 @@ func TestSetupSettingsClearDb(t *testing.T) {
 		assert.Nil(t, web.arena.Database.CreateMatchResult(&model.MatchResult{MatchId: 1, PlayNumber: 2}))
 		assert.Nil(t, web.arena.Database.CreateMatchResult(&model.MatchResult{MatchId: 2, PlayNumber: 1}))
 		assert.Nil(t, web.arena.Database.CreateMatchResult(&model.MatchResult{MatchId: 3, PlayNumber: 1}))
-		assert.Nil(t, web.arena.Database.CreateRanking(&game.Ranking{TeamId: 254}))
+		assert.Nil(t, web.arena.Database.CreateRanking(&game.Ranking{TeamId: "254"}))
 		assert.Nil(t, web.arena.Database.CreateAlliance(&model.Alliance{Id: 1}))
 		web.arena.AllianceSelectionAlliances = append(web.arena.AllianceSelectionAlliances, model.Alliance{Id: 1})
 	}

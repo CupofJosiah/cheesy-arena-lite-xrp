@@ -22,10 +22,10 @@ func TestMatchesApi(t *testing.T) {
 		Type:             model.Qualification,
 		ShortName:        "Q1",
 		Time:             time.Unix(0, 0),
-		Red1:             1,
-		Red2:             2,
-		Blue1:            4,
-		Blue2:            5,
+		Red1:             "1",
+		Red2:             "2",
+		Blue1:            "4",
+		Blue2:            "5",
 		Blue1IsSurrogate: true,
 		Blue2IsSurrogate: true,
 	}
@@ -33,10 +33,10 @@ func TestMatchesApi(t *testing.T) {
 		Type:            model.Qualification,
 		ShortName:       "Q2",
 		Time:            time.Unix(600, 0),
-		Red1:            7,
-		Red2:            8,
-		Blue1:           10,
-		Blue2:           11,
+		Red1:            "7",
+		Red2:            "8",
+		Blue1:           "10",
+		Blue2:           "11",
 		Red1IsSurrogate: true,
 		Red2IsSurrogate: true,
 	}
@@ -44,10 +44,10 @@ func TestMatchesApi(t *testing.T) {
 		Type:      model.Practice,
 		ShortName: "P1",
 		Time:      time.Now(),
-		Red1:      6,
-		Red2:      5,
-		Blue1:     3,
-		Blue2:     2,
+		Red1:      "6",
+		Red2:      "5",
+		Blue1:     "3",
+		Blue2:     "2",
 	}
 	web.arena.Database.CreateMatch(&match1)
 	web.arena.Database.CreateMatch(&match2)
@@ -94,8 +94,8 @@ func TestRankingsApi(t *testing.T) {
 	web.arena.Database.CreateRanking(&ranking2.Ranking)
 	web.arena.Database.CreateMatch(&model.Match{Type: model.Qualification, ShortName: "Q29", Status: game.RedWonMatch})
 	web.arena.Database.CreateMatch(&model.Match{Type: model.Qualification, ShortName: "Q30"})
-	web.arena.Database.CreateTeam(&model.Team{Id: 254, Nickname: "ChezyPof"})
-	web.arena.Database.CreateTeam(&model.Team{Id: 1114, Nickname: "Simbots"})
+	web.arena.Database.CreateTeam(&model.Team{Id: "254", Nickname: "ChezyPof"})
+	web.arena.Database.CreateTeam(&model.Team{Id: "1114", Nickname: "Simbots"})
 
 	recorder = web.getHttpResponse("/api/rankings")
 	assert.Equal(t, 200, recorder.Code)
@@ -142,16 +142,16 @@ func TestAlliancesApi(t *testing.T) {
 	assert.Nil(t, err)
 	if assert.Equal(t, 2, len(alliances)) {
 		if assert.Equal(t, 5, len(alliances[0].TeamIds)) {
-			assert.Equal(t, 254, alliances[0].TeamIds[0])
-			assert.Equal(t, 469, alliances[0].TeamIds[1])
-			assert.Equal(t, 2848, alliances[0].TeamIds[2])
-			assert.Equal(t, 74, alliances[0].TeamIds[3])
-			assert.Equal(t, 3175, alliances[0].TeamIds[4])
+			assert.Equal(t, game.TeamId("254"), alliances[0].TeamIds[0])
+			assert.Equal(t, game.TeamId("469"), alliances[0].TeamIds[1])
+			assert.Equal(t, game.TeamId("2848"), alliances[0].TeamIds[2])
+			assert.Equal(t, game.TeamId("74"), alliances[0].TeamIds[3])
+			assert.Equal(t, game.TeamId("3175"), alliances[0].TeamIds[4])
 		}
 		if assert.Equal(t, 3, len(alliances[1].TeamIds)) {
-			assert.Equal(t, 1718, alliances[1].TeamIds[0])
-			assert.Equal(t, 2451, alliances[1].TeamIds[1])
-			assert.Equal(t, 1619, alliances[1].TeamIds[2])
+			assert.Equal(t, game.TeamId("1718"), alliances[1].TeamIds[0])
+			assert.Equal(t, game.TeamId("2451"), alliances[1].TeamIds[1])
+			assert.Equal(t, game.TeamId("1619"), alliances[1].TeamIds[2])
 		}
 	}
 }

@@ -12,13 +12,13 @@ import (
 
 type Alliance struct {
 	Id      int `db:"id,manual"`
-	TeamIds []int
-	Lineup  [game.TeamsPerAlliance]int
+	TeamIds []game.TeamId
+	Lineup  [game.TeamsPerAlliance]game.TeamId
 }
 
 type AllianceSelectionRankedTeam struct {
 	Rank   int
-	TeamId int
+	TeamId game.TeamId
 	Picked bool
 }
 
@@ -57,7 +57,9 @@ func (database *Database) GetAllAlliances() ([]Alliance, error) {
 }
 
 // Updates the alliance, if necessary, to include whoever played in the match, in case there was a substitute.
-func (database *Database) UpdateAllianceFromMatch(allianceId int, matchTeamIds [game.TeamsPerAlliance]int) error {
+func (database *Database) UpdateAllianceFromMatch(
+	allianceId int, matchTeamIds [game.TeamsPerAlliance]game.TeamId,
+) error {
 	alliance, err := database.GetAllianceById(allianceId)
 	if err != nil {
 		return err
@@ -92,7 +94,7 @@ func (database *Database) UpdateAllianceFromMatch(allianceId int, matchTeamIds [
 // Returns two arrays containing the IDs of any teams for the red and blue alliances, respectively, who are part of the
 // playoff alliance but are not playing in the given match.
 // If the given match isn't a playoff match, empty arrays are returned.
-func (database *Database) GetOffFieldTeamIds(match *Match) ([]int, []int, error) {
+func (database *Database) GetOffFieldTeamIds(match *Match) ([]game.TeamId, []game.TeamId, error) {
 	redOffFieldTeams, err := database.getOffFieldTeamIdsForAlliance(
 		match.PlayoffRedAlliance, match.Red1, match.Red2,
 	)
@@ -110,16 +112,18 @@ func (database *Database) GetOffFieldTeamIds(match *Match) ([]int, []int, error)
 	return redOffFieldTeams, blueOffFieldTeams, nil
 }
 
-func (database *Database) getOffFieldTeamIdsForAlliance(allianceId int, teamId1, teamId2 int) ([]int, error) {
+func (database *Database) getOffFieldTeamIdsForAlliance(
+	allianceId int, teamId1, teamId2 game.TeamId,
+) ([]game.TeamId, error) {
 	if allianceId == 0 {
-		return []int{}, nil
+		return []game.TeamId{}, nil
 	}
 
 	alliance, err := database.GetAllianceById(allianceId)
 	if alliance == nil || err != nil {
 		return nil, err
 	}
-	offFieldTeamIds := []int{}
+	offFieldTeamIds := []game.TeamId{}
 	for _, allianceTeamId := range alliance.TeamIds {
 		if allianceTeamId != teamId1 && allianceTeamId != teamId2 {
 			offFieldTeamIds = append(offFieldTeamIds, allianceTeamId)

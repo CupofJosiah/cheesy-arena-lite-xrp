@@ -22,6 +22,28 @@ through the API. Every page linked from the navbar returns 200. Match cue sequen
 > **Toolchain:** Go is not installed on this machine. A portable Go 1.26.5 was downloaded to the session scratchpad
 > to build and test. Install Go properly before continuing.
 
+## Alphanumeric team numbers
+
+Team numbers can now contain letters (`12A`, `12B`), so several teams from the same school can be told apart. The
+team ID is a `game.TeamId` string everywhere it used to be an `int`: `Team.Id`, the four station fields on `Match`,
+`Alliance.TeamIds`/`Lineup`, `Ranking.TeamId`, `Award.TeamId`, `JudgingSlot.TeamId`, and every map keyed by team.
+`""` replaces `0` as "no team".
+
+- `game/team_id.go` holds the type, `ParseTeamId` (validate + uppercase, letters and digits only, max 6 characters),
+  and `LessTeamId` (natural sort, so `9B` sorts before `10A`).
+- The Bolt `table` wrapper is now generic over its ID type (`table[R, I]`); string-keyed tables must use manual IDs,
+  since only ints have a sequence to draw from. Bucket keys are unchanged for numeric IDs.
+- `game.TeamId` unmarshals from a JSON number as well as a string, so **existing databases still load**.
+  `model/legacy_team_id_test.go` writes old-format records straight into the buckets and reads them back to guard
+  this.
+- The team import page validates the whole pasted list before creating anything and reports bad entries and
+  duplicates instead of silently skipping them.
+- The team avatar endpoint now parses its path value rather than interpolating it, since a raw string in a file path
+  would otherwise allow traversal.
+- `edit_match_result.html` had to quote the team numbers it writes into a JS array literal; these are
+  `text/template`, so an unquoted `12A` would have been a syntax error. The `itoa` template helper was replaced by
+  `teamKey`.
+
 ## What was done in this session
 
 Picking up from the previous handoff, whose remaining work was "fix the `web` test package".

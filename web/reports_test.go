@@ -50,10 +50,10 @@ func TestScheduleCsvReport(t *testing.T) {
 		Type:             model.Qualification,
 		ShortName:        "Q1",
 		Time:             match1Time,
-		Red1:             1,
-		Red2:             2,
-		Blue1:            4,
-		Blue2:            5,
+		Red1:             "1",
+		Red2:             "2",
+		Blue1:            "4",
+		Blue2:            "5",
 		Blue1IsSurrogate: true,
 		Blue2IsSurrogate: true,
 	}
@@ -62,10 +62,10 @@ func TestScheduleCsvReport(t *testing.T) {
 		Type:            model.Qualification,
 		ShortName:       "Q2",
 		Time:            match2Time,
-		Red1:            7,
-		Red2:            8,
-		Blue1:           10,
-		Blue2:           11,
+		Red1:            "7",
+		Red2:            "8",
+		Blue1:           "10",
+		Blue2:           "11",
 		Red1IsSurrogate: true,
 		Red2IsSurrogate: true,
 	}
@@ -73,10 +73,10 @@ func TestScheduleCsvReport(t *testing.T) {
 		Type:      model.Practice,
 		ShortName: "P1",
 		Time:      time.Now(),
-		Red1:      6,
-		Red2:      5,
-		Blue1:     3,
-		Blue2:     2,
+		Red1:      "6",
+		Red2:      "5",
+		Blue1:     "3",
+		Blue2:     "2",
 	}
 	web.arena.Database.CreateMatch(&match1)
 	web.arena.Database.CreateMatch(&match2)
@@ -99,16 +99,16 @@ func TestSchedulePdfReport(t *testing.T) {
 		Type:             model.Practice,
 		ShortName:        "P1",
 		Time:             time.Unix(0, 0),
-		Red1:             1,
-		Red2:             2,
-		Blue1:            4,
-		Blue2:            5,
+		Red1:             "1",
+		Red2:             "2",
+		Blue1:            "4",
+		Blue2:            "5",
 		Blue1IsSurrogate: true,
 		Blue2IsSurrogate: true,
 	}
 	web.arena.Database.CreateMatch(&match)
 	team := model.Team{
-		Id: 254, Name: "NASA", Nickname: "The Cheesy Poofs", City: "San Jose", StateProv: "CA",
+		Id: "254", Name: "NASA", Nickname: "The Cheesy Poofs", City: "San Jose", StateProv: "CA",
 		Country: "USA", RookieYear: 1999, RobotName: "Barrage",
 	}
 	web.arena.Database.CreateTeam(&team)
@@ -123,7 +123,7 @@ func TestTeamsCsvReport(t *testing.T) {
 	web := setupTestWeb(t)
 
 	team1 := model.Team{
-		Id:         254,
+		Id:         "254",
 		Name:       "NASA",
 		Nickname:   "The Cheesy Poofs",
 		SchoolName: "Bellarmine College Preparatory",
@@ -134,7 +134,7 @@ func TestTeamsCsvReport(t *testing.T) {
 		RobotName:  "Barrage",
 	}
 	team2 := model.Team{
-		Id:         1114,
+		Id:         "1114",
 		Name:       "GM",
 		Nickname:   "Simbotics",
 		SchoolName: "Governor Simcoe Secondary School",
@@ -160,7 +160,7 @@ func TestTeamsPdfReport(t *testing.T) {
 	web := setupTestWeb(t)
 
 	team := model.Team{
-		Id:         254,
+		Id:         "254",
 		Name:       "NASA",
 		Nickname:   "The Cheesy Poofs",
 		City:       "San Jose",

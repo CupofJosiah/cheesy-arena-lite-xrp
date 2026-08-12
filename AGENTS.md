@@ -34,6 +34,16 @@ PRs should include:
 1. Test notes (exact commands run, for example `go test ./...`).
 1. UI screenshots when changing pages in `web/`, `static/`, or `templates/`.
 
+## Team Numbers
+Team numbers are `game.TeamId`, a string type, not `int` — teams may be numbered `12A`, `12B`, and so on. The empty
+team ID means "no team"; never compare a team ID against `0`. Parse user input with `game.ParseTeamId` (which
+validates and uppercases) rather than accepting a raw string, especially anywhere the value reaches a filesystem path
+or a URL. Sort with `game.LessTeamId` so that `9B` precedes `10A`. When interpolating a team number into JavaScript
+inside a template, quote it — these templates are `text/template`, so nothing is escaped for you.
+
+`game.TeamId` decodes from either a JSON string or a bare number, so databases predating the change still load. Do
+not remove that fallback without a migration.
+
 ## Configuration & Ops Notes
 The server runs locally and uses BoltDB for data. There is no field network, PLC, or driver station integration; per-station readiness is set by hand from the match play page or field monitor.
 

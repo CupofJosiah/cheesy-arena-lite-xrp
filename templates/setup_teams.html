@@ -6,11 +6,10 @@ UI for configuring the team list for an event.
 */}}
 {{define "title"}}Team List{{end}}
 {{define "body"}}
-{{if .ShowErrorMessage}}
+{{if .ErrorMessage}}
 <div class="alert alert-dismissible alert-danger">
   <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  You can't modify the team list once the qualification schedule has been generated. If you need to change
-  the team list, clear all other data first on the Settings page.
+  {{.ErrorMessage}}
 </div>
 {{end}}
 <div class="row">
@@ -18,7 +17,10 @@ UI for configuring the team list for an event.
     <form action="/setup/teams" method="POST">
       <fieldset>
         <legend>Import Teams</legend>
-        <p>Teams are added by number only; fill in names and other details by editing each team.</p>
+        <p>
+          Teams are added by number only; fill in names and other details by editing each team. Team numbers may
+          contain letters as well as digits (for example <code>12A</code>), up to six characters.
+        </p>
         <div class="row mb-3">
           <textarea class="form-control" rows="10" name="teamNumbers"
             placeholder="One team number per line"></textarea>

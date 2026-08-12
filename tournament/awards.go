@@ -17,14 +17,14 @@ func CreateOrUpdateAward(database *model.Database, award *model.Award, createInt
 		return fmt.Errorf("Award name cannot be blank.")
 	}
 	var team *model.Team
-	if award.TeamId > 0 {
+	if award.TeamId != "" {
 		var err error
 		team, err = database.GetTeamById(award.TeamId)
 		if err != nil {
 			return err
 		}
 		if team == nil {
-			return fmt.Errorf("Team %d is not present at this event.", award.TeamId)
+			return fmt.Errorf("Team %s is not present at this event.", award.TeamId)
 		}
 	}
 
@@ -45,10 +45,10 @@ func CreateOrUpdateAward(database *model.Database, award *model.Award, createInt
 	}
 	if team != nil {
 		if award.PersonName == "" {
-			awardWinnerLowerThird.BottomText = fmt.Sprintf("Team %d, %s", team.Id, team.Nickname)
+			awardWinnerLowerThird.BottomText = fmt.Sprintf("Team %s, %s", team.Id, team.Nickname)
 		} else {
 			awardWinnerLowerThird.BottomText = fmt.Sprintf(
-				"%s &ndash; Team %d, %s", award.PersonName, team.Id, team.Nickname,
+				"%s &ndash; Team %s, %s", award.PersonName, team.Id, team.Nickname,
 			)
 		}
 	}

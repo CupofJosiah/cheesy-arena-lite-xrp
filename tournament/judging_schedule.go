@@ -7,6 +7,7 @@ package tournament
 
 import (
 	"fmt"
+	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"math/rand"
 	"time"
@@ -98,7 +99,7 @@ func BuildJudgingSchedule(database *model.Database, params JudgingScheduleParams
 	)
 
 	// Loop until all teams have been scheduled.
-	scheduledTeams := make(map[int]struct{})
+	scheduledTeams := make(map[game.TeamId]struct{})
 	noProgressCount := 0
 	maxNoProgress := len(teams) * params.NumJudges * 5
 	for len(scheduledTeams) < len(teams) {
@@ -122,7 +123,7 @@ func BuildJudgingSchedule(database *model.Database, params JudgingScheduleParams
 
 			slot, err := getNextSlotForTeam(team, candidateTime, teamMatches[team.Id], params)
 			if err != nil {
-				return fmt.Errorf("error finding next slot for team %d: %v", team.Id, err)
+				return fmt.Errorf("error finding next slot for team %s: %v", team.Id, err)
 			}
 			if selectedSlot == nil || slot.Time.Before(selectedSlot.Time) {
 				selectedSlot = slot
@@ -189,7 +190,7 @@ func BuildJudgingSchedule(database *model.Database, params JudgingScheduleParams
 		scheduledTeams[selectedSlot.TeamId] = struct{}{}
 
 		if err := database.CreateJudgingSlot(selectedSlot); err != nil {
-			return fmt.Errorf("error saving judging slot for team %d: %v", selectedSlot.TeamId, err)
+			return fmt.Errorf("error saving judging slot for team %s: %v", selectedSlot.TeamId, err)
 		}
 		noProgressCount = 0
 	}
@@ -198,8 +199,8 @@ func BuildJudgingSchedule(database *model.Database, params JudgingScheduleParams
 }
 
 // createTeamMatchMap creates a map of team IDs to their scheduled qualification matches.
-func createTeamMatchMap(teams []model.Team, matches []model.Match) map[int][]model.Match {
-	teamMatches := make(map[int][]model.Match)
+func createTeamMatchMap(teams []model.Team, matches []model.Match) map[game.TeamId][]model.Match {
+	teamMatches := make(map[game.TeamId][]model.Match)
 	for _, team := range teams {
 		teamMatches[team.Id] = []model.Match{}
 	}

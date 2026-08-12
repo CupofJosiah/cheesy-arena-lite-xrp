@@ -24,21 +24,21 @@ func TestCalculateRankings(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, updatedRankings, rankings)
 	if assert.Equal(t, 6, len(rankings)) {
-		assert.Equal(t, 4, rankings[0].TeamId)
+		assert.Equal(t, game.TeamId("4"), rankings[0].TeamId)
 		assert.Equal(t, 0, rankings[0].PreviousRank)
-		assert.Equal(t, 5, rankings[1].TeamId)
+		assert.Equal(t, game.TeamId("5"), rankings[1].TeamId)
 		assert.Equal(t, 0, rankings[1].PreviousRank)
-		assert.Equal(t, 3, rankings[2].TeamId)
+		assert.Equal(t, game.TeamId("3"), rankings[2].TeamId)
 		assert.Equal(t, 0, rankings[2].PreviousRank)
-		assert.Equal(t, 6, rankings[3].TeamId)
+		assert.Equal(t, game.TeamId("6"), rankings[3].TeamId)
 		assert.Equal(t, 0, rankings[3].PreviousRank)
-		assert.Equal(t, 2, rankings[4].TeamId)
+		assert.Equal(t, game.TeamId("2"), rankings[4].TeamId)
 		assert.Equal(t, 0, rankings[4].PreviousRank)
-		assert.Equal(t, 1, rankings[5].TeamId)
+		assert.Equal(t, game.TeamId("1"), rankings[5].TeamId)
 		assert.Equal(t, 0, rankings[5].PreviousRank)
 	}
 
-	previousRankings := make(map[int]int)
+	previousRankings := make(map[game.TeamId]int)
 	for _, ranking := range rankings {
 		fmt.Printf("%+v\n", ranking)
 		previousRankings[ranking.TeamId] = ranking.Rank
@@ -56,17 +56,17 @@ func TestCalculateRankings(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, updatedRankings, rankings)
 	if assert.Equal(t, 6, len(rankings)) {
-		assert.Equal(t, 6, rankings[0].TeamId)
+		assert.Equal(t, game.TeamId("6"), rankings[0].TeamId)
 		assert.Equal(t, previousRankings[rankings[0].TeamId], rankings[0].PreviousRank)
-		assert.Equal(t, 5, rankings[1].TeamId)
+		assert.Equal(t, game.TeamId("5"), rankings[1].TeamId)
 		assert.Equal(t, previousRankings[rankings[1].TeamId], rankings[1].PreviousRank)
-		assert.Equal(t, 4, rankings[2].TeamId)
+		assert.Equal(t, game.TeamId("4"), rankings[2].TeamId)
 		assert.Equal(t, previousRankings[rankings[2].TeamId], rankings[2].PreviousRank)
-		assert.Equal(t, 1, rankings[3].TeamId)
+		assert.Equal(t, game.TeamId("1"), rankings[3].TeamId)
 		assert.Equal(t, previousRankings[rankings[3].TeamId], rankings[3].PreviousRank)
-		assert.Equal(t, 2, rankings[4].TeamId)
+		assert.Equal(t, game.TeamId("2"), rankings[4].TeamId)
 		assert.Equal(t, previousRankings[rankings[4].TeamId], rankings[4].PreviousRank)
-		assert.Equal(t, 3, rankings[5].TeamId)
+		assert.Equal(t, game.TeamId("3"), rankings[5].TeamId)
 		assert.Equal(t, previousRankings[rankings[5].TeamId], rankings[5].PreviousRank)
 	}
 
@@ -84,17 +84,17 @@ func TestCalculateRankings(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, updatedRankings, rankings)
 	if assert.Equal(t, 6, len(rankings)) {
-		assert.Equal(t, 3, rankings[0].TeamId)
+		assert.Equal(t, game.TeamId("3"), rankings[0].TeamId)
 		assert.Equal(t, previousRankings[rankings[0].TeamId], rankings[0].PreviousRank)
-		assert.Equal(t, 4, rankings[1].TeamId)
+		assert.Equal(t, game.TeamId("4"), rankings[1].TeamId)
 		assert.Equal(t, previousRankings[rankings[1].TeamId], rankings[1].PreviousRank)
-		assert.Equal(t, 5, rankings[2].TeamId)
+		assert.Equal(t, game.TeamId("5"), rankings[2].TeamId)
 		assert.Equal(t, previousRankings[rankings[2].TeamId], rankings[2].PreviousRank)
-		assert.Equal(t, 2, rankings[3].TeamId)
+		assert.Equal(t, game.TeamId("2"), rankings[3].TeamId)
 		assert.Equal(t, previousRankings[rankings[3].TeamId], rankings[3].PreviousRank)
-		assert.Equal(t, 1, rankings[4].TeamId)
+		assert.Equal(t, game.TeamId("1"), rankings[4].TeamId)
 		assert.Equal(t, previousRankings[rankings[4].TeamId], rankings[4].PreviousRank)
-		assert.Equal(t, 6, rankings[5].TeamId)
+		assert.Equal(t, game.TeamId("6"), rankings[5].TeamId)
 		assert.Equal(t, previousRankings[rankings[5].TeamId], rankings[5].PreviousRank)
 	}
 
@@ -106,22 +106,22 @@ func TestCalculateRankings(t *testing.T) {
 }
 
 func TestAddMatchResultToRankingsHandleCards(t *testing.T) {
-	rankings := map[int]*game.Ranking{}
+	rankings := map[game.TeamId]*game.Ranking{}
 	matchResult := model.BuildTestMatchResult(1, 1)
 	matchResult.RedCards = map[string]string{"1": "yellow", "2": "red", "3": "dq"}
 	matchResult.BlueCards = map[string]string{"4": "red", "5": "dq", "6": "yellow"}
-	addMatchResultToRankings(rankings, 1, matchResult, true)
-	addMatchResultToRankings(rankings, 2, matchResult, true)
-	addMatchResultToRankings(rankings, 3, matchResult, true)
-	addMatchResultToRankings(rankings, 4, matchResult, false)
-	addMatchResultToRankings(rankings, 5, matchResult, false)
-	addMatchResultToRankings(rankings, 6, matchResult, false)
-	assert.Equal(t, 0, rankings[1].Disqualifications)
-	assert.Equal(t, 1, rankings[2].Disqualifications)
-	assert.Equal(t, 1, rankings[3].Disqualifications)
-	assert.Equal(t, 1, rankings[4].Disqualifications)
-	assert.Equal(t, 1, rankings[5].Disqualifications)
-	assert.Equal(t, 0, rankings[6].Disqualifications)
+	addMatchResultToRankings(rankings, "1", matchResult, true)
+	addMatchResultToRankings(rankings, "2", matchResult, true)
+	addMatchResultToRankings(rankings, "3", matchResult, true)
+	addMatchResultToRankings(rankings, "4", matchResult, false)
+	addMatchResultToRankings(rankings, "5", matchResult, false)
+	addMatchResultToRankings(rankings, "6", matchResult, false)
+	assert.Equal(t, 0, rankings["1"].Disqualifications)
+	assert.Equal(t, 1, rankings["2"].Disqualifications)
+	assert.Equal(t, 1, rankings["3"].Disqualifications)
+	assert.Equal(t, 1, rankings["4"].Disqualifications)
+	assert.Equal(t, 1, rankings["5"].Disqualifications)
+	assert.Equal(t, 0, rankings["6"].Disqualifications)
 }
 
 // Sets up a schedule and results that touches on all possible variables.
@@ -129,10 +129,10 @@ func setupMatchResultsForRankings(database *model.Database) {
 	match1 := model.Match{
 		Type:      model.Qualification,
 		TypeOrder: 1,
-		Red1:      1,
-		Red2:      2,
-		Blue1:     4,
-		Blue2:     5,
+		Red1:      "1",
+		Red2:      "2",
+		Blue1:     "4",
+		Blue2:     "5",
 		Status:    game.RedWonMatch,
 	}
 	database.CreateMatch(&match1)
@@ -143,10 +143,10 @@ func setupMatchResultsForRankings(database *model.Database) {
 	match2 := model.Match{
 		Type:            model.Qualification,
 		TypeOrder:       2,
-		Red1:            1,
-		Red2:            3,
-		Blue1:           2,
-		Blue2:           4,
+		Red1:            "1",
+		Red2:            "3",
+		Blue1:           "2",
+		Blue2:           "4",
 		Status:          game.BlueWonMatch,
 		Red2IsSurrogate: true,
 	}
@@ -158,10 +158,10 @@ func setupMatchResultsForRankings(database *model.Database) {
 	match3 := model.Match{
 		Type:      model.Qualification,
 		TypeOrder: 3,
-		Red1:      6,
-		Red2:      5,
-		Blue1:     3,
-		Blue2:     2,
+		Red1:      "6",
+		Red2:      "5",
+		Blue1:     "3",
+		Blue2:     "2",
 		Status:    game.TieMatch,
 	}
 	database.CreateMatch(&match3)
@@ -175,10 +175,10 @@ func setupMatchResultsForRankings(database *model.Database) {
 	match4 := model.Match{
 		Type:      model.Practice,
 		TypeOrder: 1,
-		Red1:      1,
-		Red2:      2,
-		Blue1:     4,
-		Blue2:     5,
+		Red1:      "1",
+		Red2:      "2",
+		Blue1:     "4",
+		Blue2:     "5",
 		Status:    game.RedWonMatch,
 	}
 	database.CreateMatch(&match4)
@@ -188,10 +188,10 @@ func setupMatchResultsForRankings(database *model.Database) {
 	match5 := model.Match{
 		Type:      model.Playoff,
 		TypeOrder: 8,
-		Red1:      1,
-		Red2:      2,
-		Blue1:     4,
-		Blue2:     5,
+		Red1:      "1",
+		Red2:      "2",
+		Blue1:     "4",
+		Blue2:     "5",
 		Status:    game.BlueWonMatch,
 	}
 	database.CreateMatch(&match5)
@@ -201,10 +201,10 @@ func setupMatchResultsForRankings(database *model.Database) {
 	match6 := model.Match{
 		Type:      model.Qualification,
 		TypeOrder: 4,
-		Red1:      7,
-		Red2:      8,
-		Blue1:     10,
-		Blue2:     11,
+		Red1:      "7",
+		Red2:      "8",
+		Blue1:     "10",
+		Blue2:     "11",
 		Status:    game.MatchScheduled,
 	}
 	database.CreateMatch(&match6)
