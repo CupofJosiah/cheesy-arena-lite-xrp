@@ -7,18 +7,13 @@ package web
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/Team254/cheesy-arena-lite/game"
 	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/Team254/cheesy-arena-lite/playoff"
 	"github.com/Team254/cheesy-arena-lite/websocket"
 	"io"
 	"net/http"
-	"os"
 )
-
-// Directory holding per-team avatar images, served by the team avatar endpoint.
-const avatarsDir = "static/img/avatars"
 
 type MatchResultWithSummary struct {
 	model.MatchResult
@@ -354,24 +349,6 @@ func (web *Web) arenaWebsocketApiHandler(w http.ResponseWriter, r *http.Request)
 
 	// Subscribe the websocket to the notifiers whose messages will be passed on to the client.
 	ws.HandleNotifiers(web.arena.MatchTimingNotifier, web.arena.MatchLoadNotifier, web.arena.MatchTimeNotifier)
-}
-
-// Serves the avatar for a given team, or a default if none exists.
-func (web *Web) teamAvatarsApiHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse rather than using the path value directly, since it is interpolated into a filesystem path and
-	// ParseTeamId is what guarantees it contains no path separators.
-	teamId, err := game.ParseTeamId(r.PathValue("teamId"))
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-
-	avatarPath := fmt.Sprintf("%s/%s.png", avatarsDir, teamId)
-	if _, err := os.Stat(avatarPath); os.IsNotExist(err) {
-		avatarPath = fmt.Sprintf("%s/0.png", avatarsDir)
-	}
-
-	http.ServeFile(w, r, avatarPath)
 }
 
 func (web *Web) bracketSvgApiHandler(w http.ResponseWriter, r *http.Request) {

@@ -48,9 +48,6 @@ body {
 .blue-teams {
   color: #2080ff;
 }
-.avatars {
-  line-height: 48px;
-}
 #earlyLateMessage {
   position: absolute;
   bottom: 40px;

@@ -14,24 +14,16 @@
       return {redSide: redSide, blueSide: blueSide};
     },
 
-    getAvatarUrl: function (teamId) {
-      return "/api/teams/" + teamId + "/avatar";
-    },
-
     handleMatchLoad: function (data, redSide, blueSide) {
       const currentMatch = data.Match;
       $(`#${redSide}Team1`).text(currentMatch.Red1);
       $(`#${redSide}Team1`).attr("data-yellow-card", data.Teams["R1"]?.YellowCard);
       $(`#${redSide}Team2`).text(currentMatch.Red2);
       $(`#${redSide}Team2`).attr("data-yellow-card", data.Teams["R2"]?.YellowCard);
-      $(`#${redSide}Team1Avatar`).attr("src", this.getAvatarUrl(currentMatch.Red1));
-      $(`#${redSide}Team2Avatar`).attr("src", this.getAvatarUrl(currentMatch.Red2));
       $(`#${blueSide}Team1`).text(currentMatch.Blue1);
       $(`#${blueSide}Team1`).attr("data-yellow-card", data.Teams["B1"]?.YellowCard);
       $(`#${blueSide}Team2`).text(currentMatch.Blue2);
       $(`#${blueSide}Team2`).attr("data-yellow-card", data.Teams["B2"]?.YellowCard);
-      $(`#${blueSide}Team1Avatar`).attr("src", this.getAvatarUrl(currentMatch.Blue1));
-      $(`#${blueSide}Team2Avatar`).attr("src", this.getAvatarUrl(currentMatch.Blue2));
 
       if (currentMatch.Type === matchTypePlayoff) {
         $(`#${redSide}PlayoffAlliance`).text(currentMatch.PlayoffRedAlliance);

@@ -118,19 +118,6 @@ html {
   justify-content: flex-end;
 }
 
-.avatars {
-  min-width: 50px;
-  height: 100%;
-  display: none;
-  flex-direction: column;
-  justify-content: space-evenly;
-  align-items: center;
-}
-
-.avatar {
-  height: 25px;
-}
-
 .score-number {
   width: 180px;
   height: 100%;

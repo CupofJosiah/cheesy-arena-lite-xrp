@@ -24,20 +24,12 @@ Display shown on the audience screen overlayed over the video.
               <div id="leftTeam2"></div>
             </div>
             <div class="score reversible-left">
-              <div class="avatars">
-                <img class="avatar" id="leftTeam1Avatar" src=""/>
-                <img class="avatar" id="leftTeam2Avatar" src=""/>
-              </div>
               <div class="score-fields"></div>
               <div class="score-number" id="leftScoreNumber"></div>
             </div>
             <div class="score score-right reversible-right">
               <div class="score-number" id="rightScoreNumber"></div>
               <div class="score-fields"></div>
-              <div class="avatars">
-                <img class="avatar" id="rightTeam1Avatar" src=""/>
-                <img class="avatar" id="rightTeam2Avatar" src=""/>
-              </div>
             </div>
             <div class="teams" id="rightTeams">
               <div id="rightTeam1"></div>
@@ -96,7 +88,6 @@ Display shown on the audience screen overlayed over the video.
                 <div class="final-alliance playoff-only-field" id="leftFinalAlliance"></div>
                 {{range $i := seq 3}}
                 <div class="final-team-row">
-                  <img class="final-team-avatar" id="leftFinalTeam{{$i}}Avatar" src=""/>
                   <div class="final-team-number" id="leftFinalTeam{{$i}}"></div>
                   <div class="final-team-card">
                     <div id="leftFinalTeam{{$i}}Card"></div>
@@ -159,7 +150,6 @@ Display shown on the audience screen overlayed over the video.
                 <div class="final-alliance playoff-only-field" id="rightFinalAlliance"></div>
                 {{range $i := seq 3}}
                 <div class="final-team-row">
-                  <img class="final-team-avatar" id="rightFinalTeam{{$i}}Avatar" src=""/>
                   <div class="final-team-number" id="rightFinalTeam{{$i}}"></div>
                   <div class="final-team-card">
                     <div id="rightFinalTeam{{$i}}Card"></div>

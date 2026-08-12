@@ -101,8 +101,6 @@ const handleRealtimeScore = function (data) {
 const transitionBlankToIntro = function (callback) {
   hideMessage(function () {
     $(".teams").css("display", "flex");
-    $(".avatars").css("display", "flex");
-    $(".avatars").css("opacity", 1);
     $(".score").transition({queue: false, width: scoreMid}, 500, "ease", function () {
       $("#eventMatchInfo").css("display", "flex");
       $("#eventMatchInfo").transition({queue: false, height: eventMatchInfoDown}, 500, "ease", callback);
@@ -144,8 +142,6 @@ const transitionIntroToBlank = function (callback) {
   $("#eventMatchInfo").transition({queue: false, height: eventMatchInfoUp}, 500, "ease", function () {
     $("#eventMatchInfo").hide();
     $(".score").transition({queue: false, width: scoreIn}, 500, "ease", function () {
-      $(".avatars").css("opacity", 0);
-      $(".avatars").hide();
       $(".teams").hide();
       showMessage(callback);
     });
@@ -153,9 +149,6 @@ const transitionIntroToBlank = function (callback) {
 };
 
 const transitionIntroToMatch = function (callback) {
-  $(".avatars").transition({queue: false, opacity: 0}, 500, "ease", function () {
-    $(".avatars").hide();
-  });
   $("#logo").transition({queue: false, top: logoUp}, 500, "ease");
   $(".score").transition({queue: false, width: scoreOut}, 500, "ease", function () {
     $(".score-number").transition({queue: false, opacity: 1}, 750, "ease");
@@ -169,8 +162,6 @@ const transitionIntroToTimeout = function (callback) {
   $("#eventMatchInfo").transition({queue: false, height: eventMatchInfoUp}, 500, "ease", function () {
     $("#eventMatchInfo").hide();
     $(".score").transition({queue: false, width: scoreIn}, 500, "ease", function () {
-      $(".avatars").css("opacity", 0);
-      $(".avatars").hide();
       $(".teams").hide();
       $("#timeoutDetails").transition({queue: false, width: timeoutDetailsOut}, 500, "ease");
       $("#logo").transition({queue: false, top: logoUp}, 500, "ease", function () {
@@ -206,10 +197,7 @@ const transitionMatchToIntro = function (callback) {
   $(".score-aux").hide();
   $("#matchTime").transition({queue: false, opacity: 0}, 300, "linear", function () {
     $("#logo").transition({queue: false, top: logoDown}, 500, "ease");
-    $(".score").transition({queue: false, width: scoreMid}, 500, "ease", function () {
-      $(".avatars").css("display", "flex");
-      $(".avatars").transition({queue: false, opacity: 1}, 500, "ease", callback);
-    });
+    $(".score").transition({queue: false, width: scoreMid}, 500, "ease", callback);
   });
 };
 
@@ -228,8 +216,6 @@ const transitionTimeoutToIntro = function (callback) {
   $("#matchTime").transition({queue: false, opacity: 0}, 300, "linear", function () {
     $("#timeoutDetails").transition({queue: false, width: timeoutDetailsIn}, 500, "ease");
     $("#logo").transition({queue: false, top: logoDown}, 500, "ease", function () {
-      $(".avatars").css("display", "flex");
-      $(".avatars").css("opacity", 1);
       $(".teams").css("display", "flex");
       $(".score").transition({queue: false, width: scoreMid}, 500, "ease", function () {
         $("#eventMatchInfo").show();

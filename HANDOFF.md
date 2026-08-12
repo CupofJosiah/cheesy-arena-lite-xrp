@@ -38,8 +38,6 @@ team ID is a `game.TeamId` string everywhere it used to be an `int`: `Team.Id`, 
   this.
 - The team import page validates the whole pasted list before creating anything and reports bad entries and
   duplicates instead of silently skipping them.
-- The team avatar endpoint now parses its path value rather than interpolating it, since a raw string in a file path
-  would otherwise allow traversal.
 - `edit_match_result.html` had to quote the team numbers it writes into a JS array literal; these are
   `text/template`, so an unquoted `12A` would have been a syntax error. The `itoa` template helper was replaced by
   `teamKey`.
@@ -100,6 +98,20 @@ enough, and `TestArenaMatchSounds` walks a full match timeline asserting each cu
 `scoring_panel.css` and `referee_panel.css` now style the counter markup (`.score-counter`, `.counter-button`,
 `.penalty-counter`, period headings, subtotal blocks), including the narrow-screen breakpoints for tablets. Both
 panels were checked in a browser.
+
+### Final score display and team avatars
+
+The final score screen rendered four team rows per alliance (`{{range $i := seq 4}}`) because upstream put three
+robots on the field plus an off-field team in row 4. The 2v2 conversion dropped the `setTeamInfo(..., 3, ...)` calls
+from `audience_display.js` but left the template emitting the row, so row 3 was never populated **and** never
+hidden — `setTeamInfo` is what calls `.toggle(hasTeam)`. Its two `<img src="">` tags rendered as broken-image icons
+on every posted score. The off-field team moved to row 3 and the loop is now `seq 3`.
+
+Team avatars were removed entirely. They came from TBA, which this fork does not have, so every lookup fell through
+to a blank placeholder and left an empty 35px gutter in each team row. Gone: the `/api/teams/{teamId}/avatar` route
+and handler, `static/img/avatars/`, `DisplayShared.getAvatarUrl`, the `.avatars`/`.avatar`/`.final-team-avatar` CSS,
+and the markup on the audience, wall, and queueing displays. The queueing display's two `col-lg-1` avatar columns
+were folded into the team columns, which went from `col-lg-2` to `col-lg-3` to keep the row at 12.
 
 ## Remaining work
 
