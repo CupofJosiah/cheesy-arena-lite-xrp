@@ -113,6 +113,12 @@ and handler, `static/img/avatars/`, `DisplayShared.getAvatarUrl`, the `.avatars`
 and the markup on the audience, wall, and queueing displays. The queueing display's two `col-lg-1` avatar columns
 were folded into the team columns, which went from `col-lg-2` to `col-lg-3` to keep the row at 12.
 
+Ranking points and the per-team rank readout were then dropped from the final score screen. That removed the last
+users of `playoff-hidden-field`, so the show/hide pair in `handleScorePosted` collapsed to a single
+`$(".playoff-only-field").toggle(...)`, `setTeamInfo` lost its `rankings` parameter, and `static/img/rank-up.svg`
+and `rank-down.svg` were deleted. `RedRankings`/`BlueRankings` stay in the `scorePosted` message — the announcer
+display still reads them.
+
 ## Remaining work
 
 1. **Replace `countdown.wav` with a real recording** (above).

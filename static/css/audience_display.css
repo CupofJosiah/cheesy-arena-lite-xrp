@@ -251,20 +251,6 @@
 .final-team-card div[data-card=red] {
   background-color: #e00;
 }
-.final-team-rank {
-  width: 50px;
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-end;
-}
-.final-team-rank img {
-  width: 15px;
-  margin-right: 3px;
-}
-.final-team-rank div {
-  color: #fff;
-  font-size: 20px;
-}
 .final-destination {
   margin-top: 10px;
   width: 200px;

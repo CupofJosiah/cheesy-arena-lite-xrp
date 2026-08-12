@@ -125,16 +125,15 @@ const handleScorePosted = function (data) {
 
   $(`#${redSide}FinalScore`).text(data.RedScoreSummary.Score);
   $(`#${redSide}FinalAlliance`).text("Alliance " + data.Match.PlayoffRedAlliance);
-  setTeamInfo(redSide, 1, data.Match.Red1, data.RedCards, data.RedRankings);
-  setTeamInfo(redSide, 2, data.Match.Red2, data.RedCards, data.RedRankings);
+  setTeamInfo(redSide, 1, data.Match.Red1, data.RedCards);
+  setTeamInfo(redSide, 2, data.Match.Red2, data.RedCards);
   // The third row is the off-field team, if there is one; there is no third robot on the field.
   if (data.RedOffFieldTeamIds.length > 0) {
-    setTeamInfo(redSide, 3, data.RedOffFieldTeamIds[0], data.RedCards, data.RedRankings);
+    setTeamInfo(redSide, 3, data.RedOffFieldTeamIds[0], data.RedCards);
   } else {
-    setTeamInfo(redSide, 3, "", data.RedCards, data.RedRankings);
+    setTeamInfo(redSide, 3, "", data.RedCards);
   }
   setFinalScoreBreakdown(redSide, data.RedScoreSummary);
-  $(`#${redSide}FinalRankingPoints`).html(data.RedRankingPoints);
   $(`#${redSide}FinalWins`).text(data.RedWins);
   const redFinalDestination = $(`#${redSide}FinalDestination`);
   redFinalDestination.html(data.RedDestination.replace("Advances to ", "Advances to<br>"));
@@ -143,15 +142,14 @@ const handleScorePosted = function (data) {
 
   $(`#${blueSide}FinalScore`).text(data.BlueScoreSummary.Score);
   $(`#${blueSide}FinalAlliance`).text("Alliance " + data.Match.PlayoffBlueAlliance);
-  setTeamInfo(blueSide, 1, data.Match.Blue1, data.BlueCards, data.BlueRankings);
-  setTeamInfo(blueSide, 2, data.Match.Blue2, data.BlueCards, data.BlueRankings);
+  setTeamInfo(blueSide, 1, data.Match.Blue1, data.BlueCards);
+  setTeamInfo(blueSide, 2, data.Match.Blue2, data.BlueCards);
   if (data.BlueOffFieldTeamIds.length > 0) {
-    setTeamInfo(blueSide, 3, data.BlueOffFieldTeamIds[0], data.BlueCards, data.BlueRankings);
+    setTeamInfo(blueSide, 3, data.BlueOffFieldTeamIds[0], data.BlueCards);
   } else {
-    setTeamInfo(blueSide, 3, "", data.BlueCards, data.BlueRankings);
+    setTeamInfo(blueSide, 3, "", data.BlueCards);
   }
   setFinalScoreBreakdown(blueSide, data.BlueScoreSummary);
-  $(`#${blueSide}FinalRankingPoints`).html(data.BlueRankingPoints);
   $(`#${blueSide}FinalWins`).text(data.BlueWins);
   const blueFinalDestination = $(`#${blueSide}FinalDestination`);
   blueFinalDestination.html(data.BlueDestination.replace("Advances to ", "Advances to<br>"));
@@ -167,14 +165,7 @@ const handleScorePosted = function (data) {
   // Reload the bracket to reflect any changes.
   $("#bracketSvg").attr("src", "/api/bracket/svg?activeMatch=saved&v=" + new Date().getTime());
 
-  if (data.Match.Type === matchTypePlayoff) {
-    // Hide bonus ranking points and show playoff-only fields.
-    $(".playoff-hidden-field").hide();
-    $(".playoff-only-field").show();
-  } else {
-    $(".playoff-hidden-field").show();
-    $(".playoff-only-field").hide();
-  }
+  $(".playoff-only-field").toggle(data.Match.Type === matchTypePlayoff);
 };
 
 const setFinalScoreBreakdown = function (side, summary) {
@@ -624,7 +615,7 @@ const initializeSponsorDisplay = function () {
   });
 };
 
-const setTeamInfo = function (side, position, teamId, cards, rankings) {
+const setTeamInfo = function (side, position, teamId, cards) {
   const teamNumberElement = $(`#${side}FinalTeam${position}`);
   const hasTeam = !!teamId;
   teamNumberElement.html(teamId);
@@ -632,26 +623,6 @@ const setTeamInfo = function (side, position, teamId, cards, rankings) {
 
   const cardElement = $(`#${side}FinalTeam${position}Card`);
   cardElement.attr("data-card", cards[teamId] || "");
-
-  const ranking = rankings[teamId];
-  let rankIndicator = "";
-  let rankNumber = "";
-  if (ranking !== undefined && ranking !== null && ranking.Rank !== 0) {
-    rankNumber = ranking.Rank;
-    if (rankNumber > ranking.PreviousRank && ranking.PreviousRank > 0) {
-      rankIndicator = "rank-down";
-    } else if (rankNumber < ranking.PreviousRank) {
-      rankIndicator = "rank-up";
-    }
-  }
-
-  const rankIndicatorElement = $(`#${side}FinalTeam${position}RankIndicator`);
-  rankIndicatorElement.attr("src", rankIndicator === "" ? "" : `/static/img/${rankIndicator}.svg`);
-  rankIndicatorElement.toggle(rankIndicator !== "" && hasTeam);
-
-  const rankNumberElement = $(`#${side}FinalTeam${position}RankNumber`);
-  rankNumberElement.text(rankNumber);
-  rankNumberElement.toggle(hasTeam);
 };
 
 $(function () {
