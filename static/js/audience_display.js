@@ -34,7 +34,8 @@ const logoUp = "20px";
 const logoDown = $("#logo").css("top");
 const scoreIn = $(".score").css("width");
 const scoreMid = "135px";
-const scoreOut = "250px";
+const scoreOut = "280px";
+const scoreFieldsOut = "100px";
 const scoreLogoTop = "-500px";
 const bracketLogoTop = "-780px";
 const bracketLogoScale = 0.75;
@@ -295,15 +296,14 @@ const transitionBlankToLogoLuma = function (callback) {
 const transitionBlankToMatch = function (callback) {
   $("#overlayCentering").transition(overlayCenteringShowParams, 500, "ease", function () {
     $(".teams").css("display", "flex");
-    $(".score-fields").css("display", "flex");
-    $(".score-fields").hide();
+    $(".score-fields").css({display: "flex", width: 0, opacity: 0});
     $("#logo").transition({queue: false, top: logoUp}, 500, "ease");
     $(".score").transition({queue: false, width: scoreOut}, 500, "ease", function () {
       $("#eventMatchInfo").css("display", "flex");
       $("#eventMatchInfo").transition({queue: false, height: eventMatchInfoDown}, 500, "ease", callback);
       $(".score-number").transition({queue: false, opacity: 1}, 750, "ease");
       $("#matchTime").transition({queue: false, opacity: 1}, 750, "ease");
-      $(".score-fields").hide();
+      $(".score-fields").transition({queue: false, width: scoreFieldsOut, opacity: 1}, 750, "ease");
     });
   });
 };
@@ -384,12 +384,12 @@ const transitionIntroToBlank = function (callback) {
 };
 
 const transitionIntroToMatch = function (callback) {
-  $(".score-fields").hide();
+  $(".score-fields").css({display: "flex", width: 0, opacity: 0});
   $("#logo").transition({queue: false, top: logoUp}, 500, "ease");
   $(".score").transition({queue: false, width: scoreOut}, 500, "ease", function () {
     $(".score-number").transition({queue: false, opacity: 1}, 750, "ease");
     $("#matchTime").transition({queue: false, opacity: 1}, 750, "ease", callback);
-    $(".score-fields").hide();
+    $(".score-fields").transition({queue: false, width: scoreFieldsOut, opacity: 1}, 750, "ease");
   });
 };
 

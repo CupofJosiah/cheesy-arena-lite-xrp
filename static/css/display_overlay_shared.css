@@ -134,12 +134,55 @@ html {
   height: 100%;
   width: 0;
   display: none;
-  flex-direction: row;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  overflow: hidden;
   opacity: 0;
 }
 
-.score-right .score-fields {
-  justify-content: flex-end;
+.score-field {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Mirror the icon to the outside of the count so that the two alliances read symmetrically. */
+.score-right .score-field {
+  flex-direction: row-reverse;
+}
+
+/* The icons are masks rather than images so that they are always drawn in solid white over the alliance color. */
+.score-field-icon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  background-color: #fff;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.score-field-icon[data-icon=crop] {
+  -webkit-mask-image: url("/static/img/crop.svg");
+  mask-image: url("/static/img/crop.svg");
+}
+
+.score-field-icon[data-icon=product] {
+  -webkit-mask-image: url("/static/img/product.svg");
+  mask-image: url("/static/img/product.svg");
+}
+
+.score-field-count {
+  width: 34px;
+  color: #fff;
+  font-family: "FuturaLTBold";
+  font-size: 26px;
+  text-align: center;
 }
 
 #matchCircle {

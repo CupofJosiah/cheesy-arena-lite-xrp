@@ -70,7 +70,14 @@
       $(`#${blueSide}ScoreNumber`).text(data.Blue.ScoreSummary.Score - data.Blue.ScoreSummary.PostMatchPoints);
       $(`#${redSide}ScoreNumber`).closest(".score").attr("data-generic", true);
       $(`#${blueSide}ScoreNumber`).closest(".score").attr("data-generic", true);
-      $(".score-fields").hide();
+      this.setScoreFields(redSide, data.Red.Score);
+      this.setScoreFields(blueSide, data.Blue.Score);
+    },
+
+    // Populates the running counts of scoring elements shown alongside the score during a match.
+    setScoreFields: function (side, score) {
+      $(`#${side}CropCount`).text(score.AutoCrops + score.TeleopCrops);
+      $(`#${side}ProductCount`).text(score.CityLimitsProducts + score.CityCenterProducts);
     },
   };
 })(window);

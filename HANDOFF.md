@@ -119,6 +119,24 @@ users of `playoff-hidden-field`, so the show/hide pair in `handleScorePosted` co
 and `rank-down.svg` were deleted. `RedRankings`/`BlueRankings` stay in the `scorePosted` message — the announcer
 display still reads them.
 
+### Element counts on the match overlay
+
+`.score-fields`, the slot between the score number and the team column, was inherited from upstream but was empty
+and explicitly hidden. It now carries live crop and product counts on both the audience and wall displays: crops
+are `AutoCrops + TeleopCrops`, product is `CityLimitsProducts + CityCenterProducts`. Both come off the existing
+`realtimeScore` message, which already sent the raw `Score` alongside the summary, so no notifier change was
+needed. The code lives in `DisplayShared.setScoreFields` so the two displays cannot drift apart.
+
+The icons are `static/img/crop.svg` and `static/img/product.svg` applied as CSS `mask-image` over a white
+`background-color` rather than as `<img>` tags. The white is a property of the stylesheet, not of the asset, so
+the fill inside the SVG cannot drift the color and the same file stays reusable elsewhere. On the right-hand
+alliance `.score-field` flips to `row-reverse` so the icon sits outboard of the count on both sides.
+
+Making room for them widened `scoreOut` from 250px to 280px on both displays, giving `.score-fields` 100px next
+to the 180px score number. Both values are duplicated as constants in `audience_display.js` and `wall_display.js`
+and must be kept in sync with `.score-number`'s width in `display_overlay_shared.css`; they have to sum to
+`scoreOut` or the flex row will shrink its children mid-transition.
+
 ## Remaining work
 
 1. **Replace `countdown.wav` with a real recording** (above).

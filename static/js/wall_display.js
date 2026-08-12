@@ -25,7 +25,8 @@ const logoUp = "35px";
 const logoDown = $("#logo").css("top");
 const scoreIn = $(".score").css("width");
 const scoreMid = "185px";
-const scoreOut = "250px";
+const scoreOut = "280px";
+const scoreFieldsOut = "100px";
 const overlayTopOffset = 110;
 const timeoutDetailsIn = $("#timeoutDetails").css("width");
 const timeoutDetailsOut = "570px";
@@ -115,14 +116,14 @@ const transitionBlankToLogo = function (callback) {
 const transitionBlankToMatch = function (callback) {
   hideMessage(function () {
     $(".teams").css("display", "flex");
-    $(".score-fields").hide();
+    $(".score-fields").css({display: "flex", width: 0, opacity: 0});
     $("#logo").transition({queue: false, top: logoUp}, 500, "ease");
     $(".score").transition({queue: false, width: scoreOut}, 500, "ease", function () {
       $("#eventMatchInfo").css("display", "flex");
       $("#eventMatchInfo").transition({queue: false, height: eventMatchInfoDown}, 500, "ease", callback);
       $(".score-number").transition({queue: false, opacity: 1}, 750, "ease");
       $("#matchTime").transition({queue: false, opacity: 1}, 750, "ease");
-      $(".score-fields").hide();
+      $(".score-fields").transition({queue: false, width: scoreFieldsOut, opacity: 1}, 750, "ease");
       $(".score-aux").hide();
     });
   });
@@ -149,11 +150,12 @@ const transitionIntroToBlank = function (callback) {
 };
 
 const transitionIntroToMatch = function (callback) {
+  $(".score-fields").css({display: "flex", width: 0, opacity: 0});
   $("#logo").transition({queue: false, top: logoUp}, 500, "ease");
   $(".score").transition({queue: false, width: scoreOut}, 500, "ease", function () {
     $(".score-number").transition({queue: false, opacity: 1}, 750, "ease");
     $("#matchTime").transition({queue: false, opacity: 1}, 750, "ease", callback);
-    $(".score-fields").hide();
+    $(".score-fields").transition({queue: false, width: scoreFieldsOut, opacity: 1}, 750, "ease");
     $(".score-aux").hide();
   });
 };
