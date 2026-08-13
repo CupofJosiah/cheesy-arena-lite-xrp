@@ -44,6 +44,12 @@
   <div class="col-sm-6">Endgame Points</div>
   <div class="col-sm-4">{{.summary.PostMatchPoints}}</div>
 </div>
+{{if ne .summary.BonusPoints 0}}
+<div class="row justify-content-center">
+  <div class="col-sm-6">Bonus Points</div>
+  <div class="col-sm-4">{{.summary.BonusPoints}}</div>
+</div>
+{{end}}
 <div class="row justify-content-center">
   <div class="col-sm-6">Match Points</div>
   <div class="col-sm-4">{{.summary.MatchPoints}}</div>

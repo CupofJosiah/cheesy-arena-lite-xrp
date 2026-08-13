@@ -19,8 +19,17 @@ through the API. Every page linked from the navbar returns 200. Match cue sequen
  16.01s  resume
 ```
 
-> **Toolchain:** Go is not installed on this machine. A portable Go 1.26.5 was downloaded to the session scratchpad
-> to build and test. Install Go properly before continuing.
+> **Toolchain:** Go is not installed on this machine. A portable Go 1.26.5 was downloaded to a session scratchpad
+> to build and test, and that scratchpad is temporary. **Install Go properly before continuing.**
+>
+> This is not a developer-convenience problem, it is an operational one. The server runs from the checked-in-adjacent
+> `cheesy-arena-lite.exe`, which is gitignored and can only be produced by a Go toolchain. Templates, JS and CSS are
+> read from disk at request time, so editing them changes a running server immediately — but anything in a `.go`
+> file does nothing until that binary is rebuilt. A stale binary is therefore invisible: the UI for a new feature
+> appears and even previews correctly client-side, while the server silently ignores it (`mapstructure` drops
+> unknown fields from websocket messages without error). Bonus points landed in exactly this trap.
+>
+> `cheesy-arena-lite-prev.exe` is the last binary built before the bonus-points work, kept as a fallback.
 
 ## Alphanumeric team numbers
 
@@ -132,10 +141,66 @@ The icons are `static/img/crop.svg` and `static/img/product.svg` applied as CSS 
 the fill inside the SVG cannot drift the color and the same file stays reusable elsewhere. On the right-hand
 alliance `.score-field` flips to `row-reverse` so the icon sits outboard of the count on both sides.
 
-Making room for them widened `scoreOut` from 250px to 280px on both displays, giving `.score-fields` 100px next
-to the 180px score number. Both values are duplicated as constants in `audience_display.js` and `wall_display.js`
-and must be kept in sync with `.score-number`'s width in `display_overlay_shared.css`; they have to sum to
-`scoreOut` or the flex row will shrink its children mid-transition.
+Making room for them widened `scoreOut` from 250px to 385px on both displays: a 120px `.score-fields` column, the
+180px score number, and an 85px empty gutter on the inboard edge. **The gutter is not optional.** `#matchCircle`
+is 150px wide and straddles the centerline, so it covers the inboard 75px of each score panel; `.score` justifies
+its contents outboard, which is what puts the slack where the circle needs it. Upstream's 250px was the same
+arrangement without the counts (180 + 70). A first attempt at 280px dropped the gutter to nothing and the circle
+sat on top of the score number.
+
+### The logo in the match circle
+
+`#matchCircle` holds the game logo and the match timer. Both are positioned against the circle explicitly rather
+than stacked in normal flow, because in flow the logo's line box shifted the timer by however much leading the
+logo's aspect ratio happened to produce. `#logo`'s `top` is the **centre** of the logo, not its upper edge: the
+display scripts animate it between the circle's centre at rest (`logoDown`, read straight out of the CSS) and the
+centre of the circle's upper half during a match (`logoUp`, 37px, duplicated in both display scripts), and the
+logo stays centred at both ends whatever shape it is. `max-width`/`max-height` size it to the largest box that
+still clears the circle's edge, so a wide banner and a square logo both fit.
+
+**CSS cannot see transparent margins baked into the image.** A logo with padding renders small and floating high
+no matter how the box is positioned, because the box is centred and the artwork is not. `static/img/game-logo.png`
+is therefore kept cropped to its artwork — the Iron Acres logo arrived as 1193x709 with the art occupying only
+y=190..507, which is exactly what that looks like on the audience display. Crop any replacement the same way
+(`Image.open(p).crop(Image.open(p).getbbox())`).
+
+`scoreOut` and `scoreFieldsOut` are duplicated as constants in `audience_display.js` and `wall_display.js` and
+must stay in sync with `.score-number`'s width in `display_overlay_shared.css`. The overlay's top row is now
+`70 + 385 + 385 + 70` = 910px wide, against 640px upstream — worth knowing, since the audience display is
+composited over video.
+
+### Bonus points
+
+`Score.BonusPoints` is a manual adjustment the scorekeeper can apply to either alliance. It is the only field on
+`game.Score` that holds points rather than a count of elements, and the only one that may be negative, so that an
+award can be taken back or a deduction applied. Every path that clamps element counts at zero
+(`scoringPanelAllianceScore.applyTo`, `applyApiAllianceScore`, `applyScorePatch`, `adjustScore` in
+`scoring_panel.js`) special-cases it.
+
+It is entered on the scoring panel under a **Bonus Points** heading, one tap per `game.BonusPointIncrement` (10),
+and on the edit-match-result page as a number input with `step="10"` and no minimum. The increment is written into
+`scoring_panel.html` as a literal, the same way the element point values are, and `TestScoringPanel` asserts it has
+not drifted from the constant — see the hazard below for why it is not passed in from the handler.
+
+> **Templates are read from disk on every request; handlers are not.** `web.parseFiles` re-parses the `.html` files
+> per request, so editing a template changes what a *running* server serves immediately, with no rebuild. The Go
+> code behind it is whatever was compiled into the running binary. A template that reads a field the running
+> binary's handler does not supply fails at execution time, and the page dies mid-render with
+> `can't evaluate field X`. Adding `.BonusPointIncrement` to `scoring_panel.html` took out the scoring panel on a
+> live server this way, before anything had been rebuilt. Keep new template/Go couplings out of the panels, and
+> **restart the server after pulling changes that touch `game.Score` or `game.ScoreSummary`** — the summary fields
+> that `edit_match_result.html` and `announcer_display_score_posted.html` now read have the same requirement.
+
+The bonus is part of `matchPoints()`, so it counts toward the win, the final score, and ranking match points. Two
+consequences worth knowing:
+
+- `RankingFields.TeleopPoints()` is a residual (`MatchPoints - AutoPoints - PostMatchPoints`), so a bonus lands in
+  the teleop column of the rankings report. Rankings themselves are unaffected; teleop is not a sort criterion.
+- The overlay shows `Score - PostMatchPoints` during a match, so a bonus appears on the audience display the moment
+  it is entered.
+
+`ScoreSummary.BonusPoints` carries it to the displays. The announcer's posted-score modal and the audience final
+score screen both hide the bonus row when it is zero, which is every normal match.
 
 ## Remaining work
 

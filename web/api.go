@@ -54,6 +54,7 @@ type apiAllianceScore struct {
 	CityCenterProducts int `json:"cityCenterProducts"`
 	BarnParks          int `json:"barnParks"`
 	BarnHangs          int `json:"barnHangs"`
+	BonusPoints        int `json:"bonusPoints"`
 	MinorPenalties     int `json:"minorPenalties"`
 	MajorPenalties     int `json:"majorPenalties"`
 	AutoPoints         int `json:"autoPoints"`
@@ -76,6 +77,7 @@ type apiAllianceScorePatch struct {
 	CityCenterProducts *int `json:"cityCenterProducts"`
 	BarnParks          *int `json:"barnParks"`
 	BarnHangs          *int `json:"barnHangs"`
+	BonusPoints        *int `json:"bonusPoints"`
 	MinorPenalties     *int `json:"minorPenalties"`
 	MajorPenalties     *int `json:"majorPenalties"`
 }
@@ -95,6 +97,7 @@ func newApiAllianceScore(score *game.Score) apiAllianceScore {
 		CityCenterProducts: score.CityCenterProducts,
 		BarnParks:          score.BarnParks,
 		BarnHangs:          score.BarnHangs,
+		BonusPoints:        score.BonusPoints,
 		MinorPenalties:     score.MinorPenalties,
 		MajorPenalties:     score.MajorPenalties,
 		AutoPoints:         score.AutoPoints(),
@@ -104,7 +107,7 @@ func newApiAllianceScore(score *game.Score) apiAllianceScore {
 	}
 }
 
-// Overwrites the score with the given element counts, ignoring any negative values.
+// Overwrites the score with the given values, ignoring any negative element counts.
 func applyApiAllianceScore(score *game.Score, apiScore apiAllianceScore) {
 	score.FactoryParks = max(apiScore.FactoryParks, 0)
 	score.AutoCrops = max(apiScore.AutoCrops, 0)
@@ -116,6 +119,9 @@ func applyApiAllianceScore(score *game.Score, apiScore apiAllianceScore) {
 	score.BarnHangs = max(apiScore.BarnHangs, 0)
 	score.MinorPenalties = max(apiScore.MinorPenalties, 0)
 	score.MajorPenalties = max(apiScore.MajorPenalties, 0)
+
+	// Bonus points are a deliberate adjustment rather than a count, so a negative value is kept as given.
+	score.BonusPoints = apiScore.BonusPoints
 }
 
 func (web *Web) currentApiScore() apiScore {
@@ -158,8 +164,13 @@ func (web *Web) scoresApiHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Adds the given deltas to the score, clamping each element at zero.
+// Adds the given deltas to the score, clamping each element count at zero.
 func applyScorePatch(score *game.Score, patch apiAllianceScorePatch) {
+	// Bonus points are a deliberate adjustment rather than a count, so they are allowed to go negative.
+	if patch.BonusPoints != nil {
+		score.BonusPoints += *patch.BonusPoints
+	}
+
 	for _, field := range []struct {
 		delta *int
 		value *int

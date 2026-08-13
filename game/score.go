@@ -22,6 +22,10 @@ const (
 	MajorPenaltyPointValue = 25
 )
 
+// The step by which the scoring interfaces adjust a bonus award. Bonus points are stored as points rather than as a
+// count of anything, so this only governs the size of one tap on a panel.
+const BonusPointIncrement = 10
+
 type Score struct {
 	// Autonomous period.
 	FactoryParks int
@@ -36,6 +40,11 @@ type Score struct {
 	// Endgame. Parking and hanging are evaluated at the end of the match regardless of when the robot arrives.
 	BarnParks int
 	BarnHangs int
+
+	// A manual adjustment in points, awarded at the scorekeeper's discretion for anything the element counts above do
+	// not cover. Unlike every other field this is already a point total, not a count, and it may be negative so that an
+	// award can be taken back or a deduction applied.
+	BonusPoints int
 
 	// Penalties committed by this alliance. Points for these are awarded to the opposing alliance.
 	MinorPenalties int
@@ -61,6 +70,7 @@ func (score *Score) Summarize(opponentScore *Score) *ScoreSummary {
 	summary.AutoPoints = score.AutoPoints()
 	summary.TeleopPoints = score.TeleopPoints()
 	summary.PostMatchPoints = score.EndgamePoints()
+	summary.BonusPoints = score.BonusPoints
 	summary.MatchPoints = score.matchPoints()
 	summary.FoulPoints = opponentScore.PenaltyPoints()
 	summary.Score = summary.MatchPoints + summary.FoulPoints
@@ -109,7 +119,7 @@ func (score *Score) matchPoints() int {
 	if score == nil || score.PlayoffDq {
 		return 0
 	}
-	return score.AutoPoints() + score.TeleopPoints() + score.EndgamePoints()
+	return score.AutoPoints() + score.TeleopPoints() + score.EndgamePoints() + score.BonusPoints
 }
 
 func winRankingPoints(score, opponentScore int) int {

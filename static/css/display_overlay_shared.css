@@ -107,6 +107,11 @@ html {
   background-color: #2080ff;
 }
 
+/*
+  The display scripts widen this to scoreOut for a match. Its contents are justified outboard, which leaves the
+  slack at the inboard edge as an empty gutter; scoreOut must exceed .score-fields plus .score-number by at least
+  half of #matchCircle's width, or the circle straddling the centerline will cover the score number.
+*/
 .score {
   width: 0;
   height: 100%;
@@ -145,7 +150,7 @@ html {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
 }
 
 /* Mirror the icon to the outside of the count so that the two alliances read symmetrically. */
@@ -155,8 +160,8 @@ html {
 
 /* The icons are masks rather than images so that they are always drawn in solid white over the alliance color. */
 .score-field-icon {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
   background-color: #fff;
   -webkit-mask-position: center;
@@ -178,10 +183,10 @@ html {
 }
 
 .score-field-count {
-  width: 34px;
+  width: 40px;
   color: #fff;
   font-family: "FuturaLTBold";
-  font-size: 26px;
+  font-size: 28px;
   text-align: center;
 }
 
@@ -195,19 +200,39 @@ html {
   border: 1px solid #222;
 }
 
+/*
+  The logo and the timer share the circle, so both are placed against it explicitly rather than stacked in normal
+  flow, where the logo's line box would shift the timer by however much leading its aspect ratio happened to produce.
+
+  `top` is the centre of the logo, not its upper edge, which is what makes this independent of the artwork: the
+  display scripts animate it between the circle's centre at rest (read straight out of this rule as logoDown) and
+  the centre of the circle's upper half during a match (logoUp), and the logo stays centred at both ends no matter
+  what shape it is. The max-width/max-height pair sizes it to the largest box that still clears the circle's edge,
+  whether the logo is a wide banner or roughly square. Note that transparent margins baked into the image are not
+  something CSS can see, so a padded logo will render small and high however this is positioned; game-logo.png is
+  kept cropped to its artwork for that reason.
+*/
 #logo {
-  position: relative;
-  top: 40px;
-  height: 60px;
+  position: absolute;
+  top: 74px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  transform: translateY(-50%);
+  max-width: 120px;
+  max-height: 60px;
 }
 
 #matchTime {
-  position: relative;
-  top: 30px;
-  height: 60px;
+  position: absolute;
+  top: 91px;
+  left: 0;
+  right: 0;
+  height: 40px;
   color: #222;
   font-family: "FuturaLTBold";
   font-size: 32px;
+  line-height: 40px;
   opacity: 0;
 }
 

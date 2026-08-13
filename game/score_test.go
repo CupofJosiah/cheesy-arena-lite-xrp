@@ -102,6 +102,30 @@ func TestScoreWinRankingPointsWithPenalties(t *testing.T) {
 	assert.Equal(t, 2, blueScore.Summarize(redScore).WinRankingPoints)
 }
 
+// A bonus is a manual adjustment in points rather than an element count, so it belongs to no scoring period and is
+// allowed to be negative.
+func TestScoreBonusPoints(t *testing.T) {
+	redScore := &Score{AutoCrops: 1, BonusPoints: 20}
+	blueScore := &Score{AutoCrops: 1, BonusPoints: -10}
+
+	redSummary := redScore.Summarize(blueScore)
+	assert.Equal(t, 7, redSummary.AutoPoints)
+	assert.Equal(t, 0, redSummary.TeleopPoints)
+	assert.Equal(t, 0, redSummary.PostMatchPoints)
+	assert.Equal(t, 20, redSummary.BonusPoints)
+	assert.Equal(t, 27, redSummary.MatchPoints)
+	assert.Equal(t, 27, redSummary.Score)
+
+	blueSummary := blueScore.Summarize(redScore)
+	assert.Equal(t, -10, blueSummary.BonusPoints)
+	assert.Equal(t, -3, blueSummary.MatchPoints)
+	assert.Equal(t, -3, blueSummary.Score)
+
+	// The alliances are tied on elements, so the bonus alone must decide the match.
+	assert.Equal(t, 2, redSummary.WinRankingPoints)
+	assert.Equal(t, 0, blueSummary.WinRankingPoints)
+}
+
 func TestScorePlayoffDisqualification(t *testing.T) {
 	redScore := &Score{AutoCrops: 2, TeleopCrops: 3, BarnParks: 1, PlayoffDq: true}
 	blueScore := &Score{AutoCrops: 1, TeleopCrops: 1}
@@ -130,6 +154,7 @@ func TestScoreEquals(t *testing.T) {
 		func(s *Score) { s.CityCenterProducts++ },
 		func(s *Score) { s.BarnParks++ },
 		func(s *Score) { s.BarnHangs++ },
+		func(s *Score) { s.BonusPoints++ },
 		func(s *Score) { s.MinorPenalties++ },
 		func(s *Score) { s.MajorPenalties++ },
 		func(s *Score) { s.PlayoffDq = !s.PlayoffDq },

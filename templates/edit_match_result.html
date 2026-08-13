@@ -72,6 +72,11 @@ UI for manually editing the result for a match.
       {{template "scoreInput" dict "alliance" .Alliance "field" "BarnHangs" "label" "Hanging from Barn (25)"}}
     </fieldset>
     <fieldset>
+      <legend>Bonus Points</legend>
+      {{template "scoreInput" dict
+          "alliance" .Alliance "field" "BonusPoints" "label" "Adjustment (points)" "allowNegative" true "step" "10"}}
+    </fieldset>
+    <fieldset>
       <legend>Penalties Committed</legend>
       {{template "scoreInput" dict "alliance" .Alliance "field" "MinorPenalties" "label" "Minor (10 to opponent)"}}
       {{template "scoreInput" dict "alliance" .Alliance "field" "MajorPenalties" "label" "Major (25 to opponent)"}}
@@ -100,7 +105,11 @@ UI for manually editing the result for a match.
 <div class="row mb-3">
   <label class="col-lg-5 control-label">{{.label}}</label>
   <div class="col-lg-3">
+    {{if .allowNegative}}
+    <input type="number" class="form-control input-sm" name="{{.alliance}}{{.field}}" step="{{.step}}">
+    {{else}}
     <input type="number" class="form-control input-sm" name="{{.alliance}}{{.field}}" min="0" step="1">
+    {{end}}
   </div>
 </div>
 {{end}}
@@ -123,11 +132,15 @@ UI for manually editing the result for a match.
       </tr>
       <tr>
         {{template "summaryField" dict "label" "Endgame" "field" "PostMatchPoints" "value" .Summary.PostMatchPoints}}
-        {{template "summaryField" dict "label" "Match" "field" "MatchPoints" "value" .Summary.MatchPoints}}
+        {{template "summaryField" dict "label" "Bonus" "field" "BonusPoints" "value" .Summary.BonusPoints}}
       </tr>
       <tr>
+        {{template "summaryField" dict "label" "Match" "field" "MatchPoints" "value" .Summary.MatchPoints}}
         {{template "summaryField" dict "label" "Foul" "field" "FoulPoints" "value" .Summary.FoulPoints}}
+      </tr>
+      <tr>
         {{template "summaryField" dict "label" "Final Score" "field" "Score" "value" .Summary.Score}}
+        <th scope="row"></th><td></td>
       </tr>
       {{if .ShowRankingPoints}}
       <tr>

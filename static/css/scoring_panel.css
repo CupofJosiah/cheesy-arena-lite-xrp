@@ -145,6 +145,13 @@ main {
   content: "+";
 }
 
+/* Same as .counter-value, but for text that is not a fixed point award and so must not be prefixed with a plus. */
+.counter-hint {
+  font-size: 11pt;
+  font-weight: normal;
+  opacity: 0.75;
+}
+
 .counter-controls {
   display: grid;
   grid-template-columns: 76px 72px 76px;
@@ -260,7 +267,8 @@ main {
     font-size: 13pt;
   }
 
-  .counter-value {
+  .counter-value,
+  .counter-hint {
     font-size: 10pt;
   }
 

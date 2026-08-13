@@ -44,6 +44,28 @@ UI for entering realtime Iron Acres scores.
 </div>
 {{end}}
 
+{{/*
+Manual point adjustment. Unlike the counters above, the value shown is already points rather than a count of
+elements, and it may go negative so that an award can be taken back.
+
+The increment is written in here as a literal, the same way the point values above are, rather than being passed in
+from the handler. Templates are re-parsed from disk on every request while the handlers are compiled in, so a
+template that reads a new field off the handler's data breaks the panel on an already-running server the instant the
+file is saved. TestScoringPanel asserts that this literal still matches game.BonusPointIncrement.
+*/}}
+{{define "bonusCounter"}}
+<div class="score-counter">
+  <span class="counter-label">Adjustment<span class="counter-hint">{{.increment}} points per tap</span></span>
+  <div class="counter-controls">
+    <button type="button" class="counter-button" ontouchstart
+        onclick="adjustScore('{{.alliance}}', 'BonusPoints', -{{.increment}});">&minus;</button>
+    <span class="counter-count" id="{{.alliance}}-BonusPoints">0</span>
+    <button type="button" class="counter-button" ontouchstart
+        onclick="adjustScore('{{.alliance}}', 'BonusPoints', {{.increment}});">+</button>
+  </div>
+</div>
+{{end}}
+
 {{define "allianceScoreInputs"}}
 <section class="alliance-score {{.alliance}}">
   <h1>{{.title}}</h1>
@@ -64,10 +86,14 @@ UI for entering realtime Iron Acres scores.
   {{template "scoreCounter" dict "alliance" .alliance "field" "BarnParks" "label" "Parked in Barn" "points" "5"}}
   {{template "scoreCounter" dict "alliance" .alliance "field" "BarnHangs" "label" "Hanging from Barn" "points" "25"}}
 
+  <h2>Bonus Points</h2>
+  {{template "bonusCounter" dict "alliance" .alliance "increment" "10"}}
+
   <div class="score-totals">
     <div><span>Auto</span><span id="{{.alliance}}-autoPoints">0</span></div>
     <div><span>Teleop</span><span id="{{.alliance}}-teleopPoints">0</span></div>
     <div><span>Endgame</span><span id="{{.alliance}}-endgamePoints">0</span></div>
+    <div><span>Bonus</span><span id="{{.alliance}}-bonusPoints">0</span></div>
     <div class="score-total"><span>Total</span><span id="{{.alliance}}-totalPoints">0</span></div>
   </div>
 </section>

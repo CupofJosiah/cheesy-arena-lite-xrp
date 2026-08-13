@@ -30,12 +30,16 @@ const overlayCenteringTopHideParams = {queue: false, top: overlayCenteringTopUp}
 const overlayCenteringTopShowParams = {queue: false, top: "50px"};
 const eventMatchInfoDown = "30px";
 const eventMatchInfoUp = $("#eventMatchInfo").css("height");
-const logoUp = "20px";
+// #logo's top is the centre of the logo rather than its upper edge, so this is the centre of the circle's upper
+// half: it leaves the logo centred over the timer that fades in below it. logoDown, from the CSS, is the centre of
+// the circle itself, where the logo sits when the timer is hidden.
+const logoUp = "37px";
 const logoDown = $("#logo").css("top");
 const scoreIn = $(".score").css("width");
 const scoreMid = "135px";
-const scoreOut = "280px";
-const scoreFieldsOut = "100px";
+// .score-fields plus .score-number plus an 85px inboard gutter that keeps them clear of the 150px #matchCircle.
+const scoreOut = "385px";
+const scoreFieldsOut = "120px";
 const scoreLogoTop = "-500px";
 const bracketLogoTop = "-780px";
 const bracketLogoScale = 0.75;
@@ -167,12 +171,16 @@ const handleScorePosted = function (data) {
   $("#bracketSvg").attr("src", "/api/bracket/svg?activeMatch=saved&v=" + new Date().getTime());
 
   $(".playoff-only-field").toggle(data.Match.Type === matchTypePlayoff);
+
+  // The bonus row is a manual adjustment that most matches will not have, so only show it when one was made.
+  $(".bonus-only-field").toggle(data.RedScoreSummary.BonusPoints !== 0 || data.BlueScoreSummary.BonusPoints !== 0);
 };
 
 const setFinalScoreBreakdown = function (side, summary) {
   $(`#${side}FinalAutoPoints`).text(summary.AutoPoints);
   $(`#${side}FinalTeleopPoints`).text(summary.TeleopPoints);
   $(`#${side}FinalPostMatchPoints`).text(summary.PostMatchPoints);
+  $(`#${side}FinalBonusPoints`).text(summary.BonusPoints);
   $(`#${side}FinalMatchPoints`).text(summary.MatchPoints);
   $(`#${side}FinalFoulPoints`).text(summary.FoulPoints);
 };

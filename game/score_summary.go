@@ -9,6 +9,7 @@ type ScoreSummary struct {
 	AutoPoints       int
 	TeleopPoints     int
 	PostMatchPoints  int
+	BonusPoints      int
 	MatchPoints      int
 	FoulPoints       int
 	Score            int

@@ -28,6 +28,7 @@ type scoringPanelAllianceScore struct {
 	CityCenterProducts int
 	BarnParks          int
 	BarnHangs          int
+	BonusPoints        int
 }
 
 type scoringPanelScoreMessage struct {
@@ -35,7 +36,7 @@ type scoringPanelScoreMessage struct {
 	Blue scoringPanelAllianceScore
 }
 
-// Copies the entered element counts into the given score, ignoring any negative values.
+// Copies the entered values into the given score, ignoring any negative element counts.
 func (allianceScore *scoringPanelAllianceScore) applyTo(score *game.Score) {
 	score.FactoryParks = max(allianceScore.FactoryParks, 0)
 	score.AutoCrops = max(allianceScore.AutoCrops, 0)
@@ -45,6 +46,9 @@ func (allianceScore *scoringPanelAllianceScore) applyTo(score *game.Score) {
 	score.CityCenterProducts = max(allianceScore.CityCenterProducts, 0)
 	score.BarnParks = max(allianceScore.BarnParks, 0)
 	score.BarnHangs = max(allianceScore.BarnHangs, 0)
+
+	// Bonus points are a deliberate adjustment rather than a count, so a negative value is kept as entered.
+	score.BonusPoints = allianceScore.BonusPoints
 }
 
 // Renders the scoring interface which enables input of scores in real-time.

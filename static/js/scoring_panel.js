@@ -8,7 +8,7 @@ let committed = false;
 let scoringAvailable = false;
 let commitAvailable = false;
 
-// Element counts entered on this panel, mirrored from the server on every realtime score update.
+// Values entered on this panel, mirrored from the server on every realtime score update.
 const scoreFields = [
   "FactoryParks",
   "AutoCrops",
@@ -18,7 +18,12 @@ const scoreFields = [
   "CityCenterProducts",
   "BarnParks",
   "BarnHangs",
+  "BonusPoints",
 ];
+
+// The one field above that holds points rather than an element count, and so is neither multiplied by a point value
+// nor clamped at zero.
+const bonusField = "BonusPoints";
 
 // Point values from section 5.2 of the manual, used only to preview totals before the server responds.
 const pointValues = {
@@ -51,12 +56,13 @@ const sendScore = function () {
   websocket.send("score", scoreMessage());
 };
 
-// Adjusts one element count and pushes the whole score to the server.
+// Adjusts one field and pushes the whole score to the server.
 const adjustScore = function (alliance, field, delta) {
   if (!scoringAvailable) {
     return;
   }
-  localScore[alliance][field] = Math.max(localScore[alliance][field] + delta, 0);
+  const value = localScore[alliance][field] + delta;
+  localScore[alliance][field] = field === bonusField ? value : Math.max(value, 0);
   renderAlliance(alliance);
   sendScore();
 };
@@ -76,11 +82,13 @@ const renderAlliance = function (alliance) {
     score.CityLimitsProducts * pointValues.CityLimitsProducts +
     score.CityCenterProducts * pointValues.CityCenterProducts;
   const endgamePoints = score.BarnParks * pointValues.BarnParks + score.BarnHangs * pointValues.BarnHangs;
+  const bonusPoints = score[bonusField];
 
   $(`#${alliance}-autoPoints`).text(autoPoints);
   $(`#${alliance}-teleopPoints`).text(teleopPoints);
   $(`#${alliance}-endgamePoints`).text(endgamePoints);
-  $(`#${alliance}-totalPoints`).text(autoPoints + teleopPoints + endgamePoints);
+  $(`#${alliance}-bonusPoints`).text(bonusPoints);
+  $(`#${alliance}-totalPoints`).text(autoPoints + teleopPoints + endgamePoints + bonusPoints);
 };
 
 const handleMatchLoad = function (data) {

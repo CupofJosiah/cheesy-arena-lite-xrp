@@ -24,7 +24,8 @@ $("form").on("input change", "input, select", function () {
   scheduleScoreSummaryRefresh();
 });
 
-// Element counts stored on a match result, matching the fields of game.Score.
+// Values stored on a match result, matching the fields of game.Score. BonusPoints is points rather than a count and
+// may be negative; the form and parseFormInt both handle that already.
 const scoreFields = [
   "FactoryParks",
   "AutoCrops",
@@ -34,6 +35,7 @@ const scoreFields = [
   "CityCenterProducts",
   "BarnParks",
   "BarnHangs",
+  "BonusPoints",
   "MinorPenalties",
   "MajorPenalties",
 ];

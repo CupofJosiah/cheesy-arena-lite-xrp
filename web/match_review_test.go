@@ -48,17 +48,25 @@ func TestMatchReviewEditExistingResult(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "Autonomous")
 	assert.Contains(t, recorder.Body.String(), "Driver Controlled")
 	assert.Contains(t, recorder.Body.String(), "Endgame")
+	assert.Contains(t, recorder.Body.String(), "Bonus Points")
 	assert.Contains(t, recorder.Body.String(), "Penalties Committed")
 	assert.Contains(t, recorder.Body.String(), "redMinorPenalties")
 	assert.Contains(t, recorder.Body.String(), "blueBarnHangs")
 	assert.NotContains(t, recorder.Body.String(), "Tower")
 
-	// Red scores 5 + 7 + 5 = 17 and concedes 10; blue scores 7 + 10 + 25 = 42 and concedes 25.
+	// The bonus is the one input that must accept a negative value, so it alone is rendered without a minimum.
+	assert.Contains(t, recorder.Body.String(), `name="redBonusPoints" step="10"`)
+	assert.Contains(t, recorder.Body.String(), `name="redBarnHangs" min="0" step="1"`)
+
+	// Red scores 5 + 7 + 5 = 17 plus a 20-point bonus and concedes 10; blue scores 7 + 10 + 25 = 42, concedes 25 and
+	// takes a 10-point bonus back.
 	postBody := fmt.Sprintf(
 		"matchResultJson=%s",
 		url.QueryEscape(fmt.Sprintf(
-			`{"MatchId":%d,"RedScore":{"FactoryParks":1,"TeleopCrops":1,"BarnParks":1,"MinorPenalties":1},`+
-				`"BlueScore":{"AutoCrops":1,"CityLimitsProducts":1,"BarnHangs":1,"MajorPenalties":1},`+
+			`{"MatchId":%d,`+
+				`"RedScore":{"FactoryParks":1,"TeleopCrops":1,"BarnParks":1,"BonusPoints":20,"MinorPenalties":1},`+
+				`"BlueScore":{"AutoCrops":1,"CityLimitsProducts":1,"BarnHangs":1,"BonusPoints":-10,`+
+				`"MajorPenalties":1},`+
 				`"RedCards":{"105":"yellow"},"BlueCards":{}}`,
 			match.Id,
 		)),
@@ -68,9 +76,9 @@ func TestMatchReviewEditExistingResult(t *testing.T) {
 
 	updatedResult, err := web.arena.Database.GetMatchResultForMatch(match.Id)
 	assert.Nil(t, err)
-	assert.Equal(t, 17, updatedResult.RedScoreSummary().MatchPoints)
-	assert.Equal(t, 42, updatedResult.RedScoreSummary().Score)
-	assert.Equal(t, 52, updatedResult.BlueScoreSummary().Score)
+	assert.Equal(t, 37, updatedResult.RedScoreSummary().MatchPoints)
+	assert.Equal(t, 62, updatedResult.RedScoreSummary().Score)
+	assert.Equal(t, 42, updatedResult.BlueScoreSummary().Score)
 	assert.Equal(t, "yellow", updatedResult.RedCards["105"])
 }
 
