@@ -91,20 +91,26 @@
   border: 2px solid #333;
   opacity: 0;
 }
+/*
+  Tall enough for a high score badge stacked above the winner badge. The slots are bottom-aligned and a hidden badge
+  takes no space, so the winner badge stays exactly where it has always sat and the high score grows upwards above it
+  rather than pushing anything down.
+*/
 #finalResultIndicators {
   position: absolute;
-  top: -63px;
+  top: -132px;
   left: 0;
   right: 0;
-  height: 63px;
+  height: 132px;
   display: flex;
   pointer-events: none;
 }
 .final-result-indicator-slot {
   width: 50%;
   display: flex;
-  justify-content: center;
-  align-items: flex-end;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
 }
 .final-result-indicator-slot:first-child {
   padding-right: 150px;
@@ -140,7 +146,13 @@
 .final-result-indicator[data-result=tie] {
   background-color: #999;
 }
-.final-result-indicator[data-result=winner], .final-result-indicator[data-result=tie] {
+/* Green rather than the winner's amber, since a match can raise both badges at once and they must not read as one. */
+.final-result-indicator[data-result=high-score] {
+  margin-bottom: 6px;
+  background-color: #3c3;
+}
+.final-result-indicator[data-result=winner], .final-result-indicator[data-result=tie],
+.final-result-indicator[data-result=high-score] {
   display: flex;
 }
 #finalTiebreakReason[data-visible=true] {

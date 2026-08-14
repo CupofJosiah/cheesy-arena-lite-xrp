@@ -119,6 +119,13 @@ const setFinalResultIndicator = function (side, label, result) {
   indicator.attr("data-result", result);
 };
 
+// Raises or clears the new-event-high-score badge above the given side's winner badge.
+const setFinalHighScoreIndicator = function (side, isHighScore) {
+  const indicator = $(`#${side}FinalHighScore`);
+  indicator.text(isHighScore ? "HIGH SCORE" : "");
+  indicator.attr("data-result", isHighScore ? "high-score" : "");
+};
+
 // Handles a websocket message to populate the final score data.
 const handleScorePosted = function (data) {
   const scorePostedJson = JSON.stringify(data);
@@ -135,6 +142,9 @@ const handleScorePosted = function (data) {
     setFinalResultIndicator(redSide, "TIE", "tie");
     setFinalResultIndicator(blueSide, "TIE", "tie");
   }
+  setFinalHighScoreIndicator(redSide, data.RedHighScore);
+  setFinalHighScoreIndicator(blueSide, data.BlueHighScore);
+
   const tiebreakReason = data.TiebreakReason || "";
   $("#finalTiebreakReason").text(tiebreakReason);
   $("#finalTiebreakReason").attr("data-visible", tiebreakReason !== "");

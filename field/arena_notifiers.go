@@ -263,6 +263,26 @@ func (arena *Arena) GenerateScorePostedMessage() any {
 		}
 	}
 
+	// Flag a new event high score, which is only meaningful for qualification matches since playoff alliances are not
+	// comparable with them. Only the top score in the match is flagged, so that an alliance which beat the old record
+	// but was still outscored does not also claim it; a tie at the top flags both.
+	var redHighScore, blueHighScore bool
+	if arena.SavedMatch.Type == model.Qualification {
+		previousHighScore, previousMatchesPlayed, err := arena.Database.GetHighestQualificationScore(
+			arena.SavedMatch.Id,
+		)
+		if err != nil {
+			log.Printf("Failed to get the high score for match %d while generating score posted message: %v",
+				arena.SavedMatch.Id, err)
+		} else if previousMatchesPlayed > 0 {
+			topScore := max(redScoreSummary.Score, blueScoreSummary.Score)
+			if topScore > previousHighScore {
+				redHighScore = redScoreSummary.Score == topScore
+				blueHighScore = blueScoreSummary.Score == topScore
+			}
+		}
+	}
+
 	redRankings := map[game.TeamId]*game.Ranking{
 		arena.SavedMatch.Red1: nil, arena.SavedMatch.Red2: nil,
 	}
@@ -292,6 +312,8 @@ func (arena *Arena) GenerateScorePostedMessage() any {
 		BlueOffFieldTeamIds []game.TeamId
 		RedWon              bool
 		BlueWon             bool
+		RedHighScore        bool
+		BlueHighScore       bool
 		TiebreakReason      string
 		RedWins             int
 		BlueWins            int
@@ -311,6 +333,8 @@ func (arena *Arena) GenerateScorePostedMessage() any {
 		blueOffFieldTeamIds,
 		arena.SavedMatch.Status == game.RedWonMatch,
 		arena.SavedMatch.Status == game.BlueWonMatch,
+		redHighScore,
+		blueHighScore,
 		tiebreakReason,
 		redWins,
 		blueWins,

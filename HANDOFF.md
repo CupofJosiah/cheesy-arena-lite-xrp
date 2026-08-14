@@ -210,6 +210,24 @@ number on screen that is the same colour as the field behind it, leaving the los
 `TestAudienceDisplay` asserts the markup is present, because it is inert — nothing else would notice if it went
 missing from the template.
 
+### The high score badge
+
+`GetHighestQualificationScore` backs a `HIGH SCORE` badge that the audience display raises above the `WINNER` badge
+on the final score screen. Qualification matches only, since playoff alliances are not comparable with them.
+
+The subtlety is that it has to be **stable under regeneration**. The result is already committed to the database by
+the time `ScorePostedNotifier` fires, and `websocket.HandleNotifiers` regenerates the announcement for every display
+that connects, so "is this the best score so far?" would answer differently depending on when it was asked. Passing
+the match's own ID to be excluded is what makes the comparison give the same answer forever.
+
+The query returns a match count alongside the score so that the caller can tell "nothing has beaten this" apart from
+"there was nothing to beat" — otherwise any score at all sets a record in the first match of an event. Only the top
+score in a match claims the record, so an alliance that beat the old record but was still outscored does not also
+claim it; a tie at the top raises both badges.
+
+The badges stack in a bottom-aligned column and a hidden badge takes no space, so `WINNER` stays exactly where it
+has always sat and `HIGH SCORE` grows upwards above it rather than pushing the score card down.
+
 ### Bonus points
 
 `Score.BonusPoints` is a manual adjustment the scorekeeper can apply to either alliance. It is the only field on
