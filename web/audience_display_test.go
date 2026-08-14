@@ -28,6 +28,10 @@ func TestAudienceDisplay(t *testing.T) {
 	assert.Equal(t, 200, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), "Audience Display - Untitled Event - Cheesy Arena")
 	assert.Contains(t, recorder.Body.String(), "finalTiebreakReason")
+	// The winner celebration is inert markup that audience_display.js drives, so nothing else would notice if it went
+	// missing from the template.
+	assert.Contains(t, recorder.Body.String(), `id="winnerAnimation"`)
+	assert.Contains(t, recorder.Body.String(), `id="winnerAllianceName"`)
 }
 
 func TestAudienceDisplayWebsocket(t *testing.T) {

@@ -169,6 +169,47 @@ must stay in sync with `.score-number`'s width in `display_overlay_shared.css`. 
 `70 + 385 + 385 + 70` = 910px wide, against 640px upstream — worth knowing, since the audience display is
 composited over video.
 
+### The winner celebration
+
+When a result is posted the audience display sweeps the winning alliance's colour across the screen, slams in
+`RED ALLIANCE` / `WINS` with the two scores, and then hands off to the existing final score screen. A tie shows
+each alliance on its own half under `TIE` / `MATCH`.
+
+**It is deliberately not a new audience display mode.** It is a prelude to the existing `score` screen, built
+entirely in `templates/audience_display.html`, `static/css/audience_display.css` and `static/js/audience_display.js`
+with no Go changes, so it can be deployed onto a running server by saving the files and refreshing the browser —
+see the template/handler hazard below for why that mattered. Making it a real mode would mean a `winner` value in
+`SetAudienceDisplayMode`, a server-timed hand-off to `score` (a client that self-advances leaves the server
+thinking it is still on `winner`, which silently breaks `AutomateAudienceDisplay`'s `!= "score"` guard and the
+match play radio buttons), and a new radio in `audience_display_radio_buttons.html`. That is the upgrade path if
+an operator preview button is ever wanted; it is a rebuild, so not something to do mid-event.
+
+It works because the server already sends the pieces in the right order: `commitMatchScore` fires
+`ScorePostedNotifier` before `commitPostAndLoadNextMatch` calls `SetAudienceDisplayMode("score")`, so the display
+knows who won before it is told to show the score. Three things follow from that:
+
+- **A `scorePosted` message is not evidence that a result was just posted.** `websocket.HandleNotifiers` replays
+  every notifier's last message to each client as it connects, and the display reconnects on its own after a
+  network blip, so `handleScorePosted` compares the payload against the previous one and only arms the celebration
+  when it has actually changed. Match ID alone is not enough — test matches reuse an ID.
+- **The celebration is armed once and consumed once.** `pendingWinnerAnimation` is cleared as it plays, so
+  navigating back to the final score later is quiet. Only `blank -> score` is hooked, which is the whole
+  post-match path: there is no direct `match -> score` edge in the transition map, so it always routes via `blank`.
+- **The blinds close underneath it.** The layer is opaque and covers the screen, so `assembleScoreScreen` runs
+  concurrently with the animation rather than after it and the hand-off is just the layer fading out. Running them
+  in sequence instead leaves the finished celebration frozen on screen for the ~2s the blinds take.
+
+`--winner-duration` in the CSS is the single source of truth for the length; the script reads it back out of the
+computed style, the same way `logoDown` and `scoreIn` are read out of the CSS. Keep it past the last keyframe.
+
+Two details in the CSS look like mistakes and are not. The sweep halves are `calc(50% + 1px)` so that they overlap
+rather than abut; at exactly `50%` a hairline of the page shows through down the centre of the screen. And the
+winning alliance's score chip is inverted to a white fill with coloured digits, because it is otherwise the one
+number on screen that is the same colour as the field behind it, leaving the loser's score reading first.
+
+`TestAudienceDisplay` asserts the markup is present, because it is inert — nothing else would notice if it went
+missing from the template.
+
 ### Bonus points
 
 `Score.BonusPoints` is a manual adjustment the scorekeeper can apply to either alliance. It is the only field on

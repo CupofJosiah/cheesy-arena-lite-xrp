@@ -18,6 +18,13 @@ let blueSide;
 let currentMatch;
 let overlayCenteringHideParams;
 let overlayCenteringShowParams;
+// Notifiers replay their last message to every client that connects, and this display reconnects on its own after a
+// network blip, so the arrival of a scorePosted message is not by itself evidence that a result was just posted.
+// Comparing against the previous payload is what tells a fresh result apart from a replay of one already seen.
+let lastScorePostedJson = null;
+// Armed when a new result arrives and consumed by the next transition into the score screen, so that the celebration
+// plays once per result rather than every time the operator navigates back to the final score.
+let pendingWinnerAnimation = null;
 const allianceSelectionTemplate = Handlebars.compile($("#allianceSelectionTemplate").html());
 const sponsorImageTemplate = Handlebars.compile($("#sponsorImageTemplate").html());
 const sponsorTextTemplate = Handlebars.compile($("#sponsorTextTemplate").html());
@@ -114,6 +121,10 @@ const setFinalResultIndicator = function (side, label, result) {
 
 // Handles a websocket message to populate the final score data.
 const handleScorePosted = function (data) {
+  const scorePostedJson = JSON.stringify(data);
+  const isNewResult = lastScorePostedJson !== null && lastScorePostedJson !== scorePostedJson;
+  lastScorePostedJson = scorePostedJson;
+
   if (data.RedWon) {
     setFinalResultIndicator(redSide, "WINNER", "winner");
     setFinalResultIndicator(blueSide, "", "");
@@ -174,6 +185,16 @@ const handleScorePosted = function (data) {
 
   // The bonus row is a manual adjustment that most matches will not have, so only show it when one was made.
   $(".bonus-only-field").toggle(data.RedScoreSummary.BonusPoints !== 0 || data.BlueScoreSummary.BonusPoints !== 0);
+
+  if (isNewResult) {
+    pendingWinnerAnimation = {
+      alliance: data.RedWon ? "red" : (data.BlueWon ? "blue" : "tie"),
+      // The physical side the winner occupies, so that the colour sweeps in from their side of the field.
+      side: data.RedWon ? redSide : (data.BlueWon ? blueSide : "none"),
+      leftScore: (redSide === "left" ? data.RedScoreSummary : data.BlueScoreSummary).Score,
+      rightScore: (redSide === "left" ? data.BlueScoreSummary : data.RedScoreSummary).Score,
+    };
+  }
 };
 
 const setFinalScoreBreakdown = function (side, summary) {
@@ -317,11 +338,23 @@ const transitionBlankToMatch = function (callback) {
 };
 
 const transitionBlankToScore = function (callback) {
-  transitionBlankToLogo(function () {
-    setTimeout(function () {
-      transitionLogoToScore(callback);
-    }, 50);
-  });
+  if (pendingWinnerAnimation === null) {
+    assembleScoreScreen(callback);
+    return;
+  }
+
+  // The celebration covers the whole screen, so the blinds and the score card are assembled unseen behind it and the
+  // hand-off is just this layer fading away. The two run concurrently rather than in sequence; otherwise the finished
+  // celebration would sit frozen on screen for the two seconds the blinds take to close underneath it.
+  let remaining = 2;
+  const whenBothFinished = function () {
+    remaining--;
+    if (remaining === 0) {
+      hideWinnerAnimation(callback);
+    }
+  };
+  playWinnerAnimation(whenBothFinished);
+  assembleScoreScreen(whenBothFinished);
 };
 
 const transitionBlankToSponsor = function (callback) {
@@ -599,6 +632,56 @@ const transitionTimeoutToIntro = function (callback) {
         $("#eventMatchInfo").transition({queue: false, height: eventMatchInfoDown}, 500, "ease", callback);
       });
     });
+  });
+};
+
+// Closes the blinds and fades in the final score card. Split out from the transition so that the winner celebration
+// can run it hidden underneath itself.
+const assembleScoreScreen = function (callback) {
+  transitionBlankToLogo(function () {
+    setTimeout(function () {
+      transitionLogoToScore(callback);
+    }, 50);
+  });
+};
+
+// Plays the winner celebration over the top of everything and invokes the callback once it has finished. Invokes the
+// callback immediately if no result is waiting, which is what keeps the score screen quiet when the operator is just
+// navigating back to it.
+const playWinnerAnimation = function (callback) {
+  if (pendingWinnerAnimation === null) {
+    callback();
+    return;
+  }
+  const winner = pendingWinnerAnimation;
+  pendingWinnerAnimation = null;
+
+  const layer = $("#winnerAnimation");
+  layer.attr({"data-alliance": winner.alliance, "data-side": winner.side});
+  $("#winnerAllianceName").text(winner.alliance === "tie" ? "TIE" : `${winner.alliance.toUpperCase()} ALLIANCE`);
+  $("#winnerLabel").text(winner.alliance === "tie" ? "MATCH" : "WINS");
+  $("#winnerLeftScore").text(winner.leftScore);
+  $("#winnerRightScore").text(winner.rightScore);
+  layer.css("opacity", 1).show();
+
+  // Removing and re-adding the class only restarts the keyframes if a reflow is forced in between.
+  layer.removeClass("playing");
+  void layer[0].offsetWidth;
+  layer.addClass("playing");
+
+  // The CSS owns the duration, so read it back rather than keeping a second copy of the number here.
+  setTimeout(callback, parseFloat(getComputedStyle(layer[0]).getPropertyValue("--winner-duration")));
+};
+
+const hideWinnerAnimation = function (callback) {
+  const layer = $("#winnerAnimation");
+  if (!layer.is(":visible")) {
+    callback();
+    return;
+  }
+  layer.transition({queue: false, opacity: 0}, 750, "ease", function () {
+    layer.removeClass("playing").hide();
+    callback();
   });
 };
 

@@ -355,6 +355,187 @@
   max-width: 800px;
   max-height: 400px;
 }
+/*
+  The winner celebration plays over the top of everything on its way into the final score screen, so its z-index
+  has to beat .blindsCenter's. Because it covers the whole screen while it runs, audience_display.js closes the
+  blinds and fades in the score card underneath it and then hands off simply by fading this layer away.
+
+  --winner-duration is the single source of truth for how long the celebration lasts; the script reads it back out
+  of the computed style rather than keeping a second copy of the number, the same way logoDown and scoreIn are read
+  out of the CSS. Keep it comfortably past the last keyframe below so the animation always finishes first.
+*/
+#winnerAnimation {
+  --winner-duration: 4200ms;
+  --winner-color: #888;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: none;
+  overflow: hidden;
+}
+#winnerAnimation[data-alliance=red] {
+  --winner-color: #ff4444;
+}
+#winnerAnimation[data-alliance=blue] {
+  --winner-color: #2080ff;
+}
+/*
+  The two halves start off-screen and slide in to meet at the centre, echoing the blinds so that the celebration
+  reads as part of the same show. They carry the reversible classes so that a tie, which has no winning colour,
+  falls back to showing each alliance on its own side of the screen; when there is a winner their colour overrides
+  both halves.
+*/
+/*
+  The halves are a pixel wider than half the screen so that they overlap rather than abut. At an odd viewport width or
+  a fractional device pixel ratio, two exact halves leave a hairline of the page behind showing down the centre.
+*/
+.winner-sweep {
+  position: absolute;
+  top: 0;
+  width: calc(50% + 1px);
+  height: 100%;
+}
+.winner-sweep.reversible-left {
+  left: 0;
+  transform: translateX(-100%);
+}
+.winner-sweep.reversible-right {
+  right: 0;
+  transform: translateX(100%);
+}
+#winnerAnimation[data-alliance=red] .winner-sweep, #winnerAnimation[data-alliance=blue] .winner-sweep {
+  background-color: var(--winner-color);
+}
+#winnerAnimation.playing .winner-sweep.reversible-left {
+  animation: winnerSweepInLeft 600ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+#winnerAnimation.playing .winner-sweep.reversible-right {
+  animation: winnerSweepInRight 600ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+/* The half the winner is standing on leads, so the colour reads as coming from their side of the field. */
+#winnerAnimation[data-side=left].playing .winner-sweep.reversible-right,
+#winnerAnimation[data-side=right].playing .winner-sweep.reversible-left {
+  animation-delay: 160ms;
+}
+@keyframes winnerSweepInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes winnerSweepInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.winner-banner {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.winner-alliance, .winner-label, .winner-scores {
+  opacity: 0;
+}
+.winner-alliance {
+  font-family: "FuturaLTBold";
+  font-size: 140px;
+  line-height: 150px;
+  letter-spacing: 4px;
+  color: #fff;
+  text-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.winner-label {
+  font-family: "FuturaLTBold";
+  font-size: 96px;
+  line-height: 100px;
+  letter-spacing: 10px;
+  color: #fff;
+  text-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.winner-scores {
+  margin-top: 50px;
+  padding: 14px 10px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: row;
+  background-color: rgba(0, 0, 0, 0.25);
+}
+/*
+  The chips keep each alliance's own colour rather than the winner's, which is what makes them readable as "this
+  score belongs to that side"; the white rule and the dark backing are what hold the winner's chip apart from the
+  field of the same colour behind it.
+*/
+.winner-score {
+  min-width: 210px;
+  height: 110px;
+  margin: 0 12px;
+  padding: 0 24px;
+  border: 4px solid #fff;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: "FuturaLTBold";
+  font-size: 76px;
+  color: #fff;
+  text-shadow: 0 0 4px #333;
+}
+/*
+  The winner's chip is inverted, because otherwise it is the one number on screen that is the same colour as the field
+  behind it: the loser's chip contrasts against the winning colour and reads first, which is backwards.
+*/
+#winnerAnimation[data-side=left] .winner-score.reversible-left,
+#winnerAnimation[data-side=right] .winner-score.reversible-right {
+  background-color: #fff;
+  color: var(--winner-color);
+  text-shadow: none;
+}
+#winnerAnimation.playing .winner-alliance {
+  animation: winnerSlamIn 800ms cubic-bezier(0.2, 0.85, 0.3, 1) 420ms forwards;
+}
+#winnerAnimation.playing .winner-label {
+  animation: winnerRiseIn 600ms ease-out 900ms forwards;
+}
+#winnerAnimation.playing .winner-scores {
+  animation: winnerRiseIn 600ms ease-out 1150ms forwards;
+}
+@keyframes winnerSlamIn {
+  0% { opacity: 0; transform: scale(3); }
+  65% { opacity: 1; transform: scale(0.94); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes winnerRiseIn {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* A single diagonal highlight travelling across the banner keeps the hold from looking like a frozen frame. */
+.winner-gloss {
+  position: absolute;
+  top: -50%;
+  left: -70%;
+  width: 30%;
+  height: 200%;
+  transform: rotate(18deg);
+  background-image: linear-gradient(
+    90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.35) 50%, rgba(255, 255, 255, 0) 100%
+  );
+  opacity: 0;
+}
+#winnerAnimation.playing .winner-gloss {
+  animation: winnerGloss 1400ms ease-in-out 1900ms forwards;
+}
+@keyframes winnerGloss {
+  0% { opacity: 0; transform: translateX(0) rotate(18deg); }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(600%) rotate(18deg); }
+}
 #allianceRankingsCentering {
   position: absolute;
   height: 100%;
