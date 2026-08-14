@@ -90,6 +90,10 @@ func teamId(number int) game.TeamId {
 
 func setupTestWeb(t *testing.T) *Web {
 	game.MatchTiming.PauseDurationSec = 2
+	// The generated-but-unsaved schedule lives in package-level state rather than in the database, so clear it to keep
+	// tests from inheriting a schedule from whichever test ran before them.
+	clear(cachedMatches)
+	clear(cachedScheduledTeams)
 	arena := field.SetupTestArena(t)
 	return NewWeb(arena)
 }

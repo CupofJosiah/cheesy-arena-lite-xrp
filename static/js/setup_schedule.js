@@ -57,9 +57,9 @@ var updateStats = function () {
   $.each(blockMatches, function (k, v) {
     totalNumMatches += v;
   });
-  var matchesPerTeam = Math.floor(totalNumMatches * 6 / numTeams);
-  var numExcessMatches = totalNumMatches - Math.ceil(matchesPerTeam * numTeams / 6);
-  var nextLevelMatches = Math.ceil((matchesPerTeam + 1) * numTeams / 6) - totalNumMatches;
+  var matchesPerTeam = Math.floor(totalNumMatches * teamsPerMatch / numTeams);
+  var numExcessMatches = totalNumMatches - Math.ceil(matchesPerTeam * numTeams / teamsPerMatch);
+  var nextLevelMatches = Math.ceil((matchesPerTeam + 1) * numTeams / teamsPerMatch) - totalNumMatches;
   $("#totalNumMatches").text(totalNumMatches);
   $("#matchesPerTeam").text(matchesPerTeam);
   $("#numExcessMatches").text(numExcessMatches);

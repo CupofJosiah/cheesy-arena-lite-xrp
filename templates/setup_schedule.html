@@ -13,7 +13,7 @@ UI for generating a match schedule.
     {{.ErrorMessage}}
   </div>
   {{end}}
-  <div class="col-lg-5">
+  <div class="col-lg-4">
     <div class="card card-body bg-body-tertiary">
       <form id="scheduleForm" action="/setup/schedule/save?matchType={{.MatchType}}" method="POST">
         <fieldset>
@@ -69,6 +69,8 @@ UI for generating a match schedule.
         <tr>
           <th>Match</th>
           <th>Time</th>
+          <th>Red</th>
+          <th>Blue</th>
         </tr>
       </thead>
       <tbody>
@@ -76,24 +78,56 @@ UI for generating a match schedule.
         <tr>
           <td>{{$match.LongName}}</td>
           <td>{{$match.Time}}</td>
+          <td>{{$match.Red1}}{{if $match.Red1IsSurrogate}}*{{end}}
+            {{$match.Red2}}{{if $match.Red2IsSurrogate}}*{{end}}</td>
+          <td>{{$match.Blue1}}{{if $match.Blue1IsSurrogate}}*{{end}}
+            {{$match.Blue2}}{{if $match.Blue2IsSurrogate}}*{{end}}</td>
         </tr>
         {{end}}
       </tbody>
     </table>
+    {{if .Matches}}
+    <p class="text-body-secondary">* Surrogate appearance; the match does not count towards the team's ranking.</p>
+    {{end}}
   </div>
-  <div class="col-lg-2">
+  <div class="col-lg-3">
+    {{if .ScheduledTeams}}
+    <div class="card card-body bg-body-tertiary mb-3">
+      <form action="/setup/schedule/swap?matchType={{.MatchType}}" method="POST">
+        <fieldset>
+          <legend>Swap Teams</legend>
+          <div class="input-group mb-2">
+            <select class="form-select" name="team1">
+              {{range $team := .ScheduledTeams}}<option value="{{$team.Id}}">{{$team.Id}}</option>{{end}}
+            </select>
+            <span class="input-group-text"><i class="bi-arrow-left-right"></i></span>
+            <select class="form-select" name="team2">
+              {{range $team := .ScheduledTeams}}<option value="{{$team.Id}}">{{$team.Id}}</option>{{end}}
+            </select>
+            <button type="submit" class="btn btn-secondary">Swap</button>
+          </div>
+          <p class="text-body-secondary mb-0">
+            Trades the two teams' schedules with each other, leaving the balance of partners, opponents and match
+            spacing untouched. Swap the same pair again to undo. Only possible until the schedule is saved.
+          </p>
+        </fieldset>
+      </form>
+    </div>
+    {{end}}
     <table class="table table-striped table-hover ">
       <thead>
         <tr>
           <th>Team</th>
           <th>First Match</th>
+          <th>Matches</th>
         </tr>
       </thead>
       <tbody>
-        {{range $team, $firstMatch := .TeamFirstMatches}}
+        {{range $team := .ScheduledTeams}}
         <tr>
-          <td>{{$team}}</td>
-          <td>{{$firstMatch}}</td>
+          <td>{{$team.Id}}</td>
+          <td>{{$team.FirstMatch}}</td>
+          <td>{{$team.NumMatches}}</td>
         </tr>
         {{end}}
       </tbody>
@@ -147,7 +181,7 @@ UI for generating a match schedule.
 {{end}}
 {{define "script"}}
 <!-- @formatter:off -->
-<script>var numTeams = {{.NumTeams}};</script>
+<script>var numTeams = {{.NumTeams}}; var teamsPerMatch = {{.TeamsPerMatch}};</script>
 <script src="/static/js/setup_schedule.js"></script>
 <script>
   {{range $block := .ScheduleBlocks}}
