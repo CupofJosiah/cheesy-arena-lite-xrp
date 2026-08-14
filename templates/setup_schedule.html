@@ -102,7 +102,10 @@ UI for generating a match schedule.
             </select>
             <span class="input-group-text"><i class="bi-arrow-left-right"></i></span>
             <select class="form-select" name="team2">
-              {{range $team := .ScheduledTeams}}<option value="{{$team.Id}}">{{$team.Id}}</option>{{end}}
+              {{/* Default to the second team so that the control is usable without touching both dropdowns. */}}
+              {{range $i, $team := .ScheduledTeams}}
+              <option value="{{$team.Id}}"{{if eq $i 1}} selected{{end}}>{{$team.Id}}</option>
+              {{end}}
             </select>
             <button type="submit" class="btn btn-secondary">Swap</button>
           </div>
